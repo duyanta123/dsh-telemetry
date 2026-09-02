@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "store": "jsonl",
+  "path": "~/.dsh/telemetry",
+  "sample_rate": 1,
+  "errors_always_sample": true,
+  "slow_request_ms": 10000,
+  "capture_metadata": "none",
+  "hash_names": false,
+  "retention_days": 7,
+  "max_file_mb": 100,
+  "flush_interval_ms": 1000,
+  "batch_size": 100,
+  "max_queue_events": 1000,
+  "price_catalog": null,
+  "redact_rules": []
+}

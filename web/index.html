@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>dsh-telemetry · 本地遥测</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <h1>DSH Telemetry</h1>
+          <div class="sub">Harness 运行遥测 · 本地只读视图</div>
+        </div>
+      </div>
+      <div class="ranges" id="ranges">
+        <button data-range="1h">1h</button>
+        <button data-range="24h" class="active">24h</button>
+        <button data-range="7d">7d</button>
+        <button data-range="30d">30d</button>
+        <button data-range="all">全部</button>
+      </div>
+      <button class="refresh" id="refresh">↻ 刷新</button>
+    </header>
+
+    <div class="chips" id="chips"></div>
+
+    <section class="kpi-grid" id="kpis"></section>
+
+    <div class="grid-2">
+      <section class="panel">
+        <h2>Token / 请求趋势（按日）</h2>
+        <div class="desc">输入 + 输出 Token 的面积图；柱高为当日请求数。悬停查看明细。</div>
+        <div class="trend-wrap" id="trend"></div>
+      </section>
+      <section class="panel">
+        <h2>错误分类</h2>
+        <div class="desc">窗口内失败与取消事件按 error.kind 分组。</div>
+        <div id="errors"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>模型比较</h2>
+      <div class="desc">按 provider / model / request_type 聚合；分位数为 nearest-rank；n 为样本数。</div>
+      <div id="models"></div>
+    </section>
+
+    <div class="grid-2">
+      <section class="panel">
+        <h2>工具耗时</h2>
+        <div class="desc">按工具名聚合；循环调用提示见下方徽标。</div>
+        <div id="tools"></div>
+      </section>
+      <section class="panel">
+        <h2>插件 Hook</h2>
+        <div class="desc">按插件与 hook 聚合的耗时与错误。</div>
+        <div id="plugins"></div>
+      </section>
+    </div>
+
+    <div class="grid-2">
+      <section class="panel">
+        <h2>请求时间线</h2>
+        <div class="desc">最近请求；点击查看 trace/span 树。默认不含任何内容字段。</div>
+        <div class="req-list" id="requests"></div>
+      </section>
+      <section class="panel" id="trace-panel">
+        <h2>Trace 详情 <span class="desc" id="trace-title" style="display:inline"></span></h2>
+        <div class="desc">span 树 + 事件时间线（白名单字段）。</div>
+        <div class="trace" id="trace"><div class="empty">选择左侧请求查看 trace 树。</div></div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <span class="privacy">本地存储 · 只读接口 · 默认不采集 prompt / response / 文件内容 / 密钥</span>
+      <span>dsh-telemetry v0.1.0 · schema 1.0 · <a href="/api/report.md" id="report-link">Markdown 报告</a></span>
+    </footer>
+  </div>
+
+  <div id="trend-tip"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

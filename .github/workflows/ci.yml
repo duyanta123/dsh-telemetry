@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [18, 20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax check (all modules)
+        run: npm run check
+      - name: Tests (contract + privacy + fail-open + parity)
+        run: npm test
+      - name: CLI smoke test
+        shell: bash
+        run: |
+          node bin/telemetry.mjs --status --path test/fixtures/telemetry-data --json
+          node bin/telemetry.mjs --summary --path test/fixtures/telemetry-data --format text
+          node bin/telemetry.mjs --trace trace-001 --path test/fixtures/telemetry-data

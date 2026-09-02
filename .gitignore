@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Test & runtime artifacts
+.nyc_output/
+*.log
+telemetry-data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
