@@ -9,7 +9,7 @@ coverage/
 # Test & runtime artifacts
 .nyc_output/
 *.log
-telemetry-data/
+/telemetry-data/
 
 # OS / editor
 .DS_Store
