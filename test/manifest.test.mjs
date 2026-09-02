@@ -37,7 +37,8 @@ test("skill frontmatter: SKILL.md declares kebab-case name matching dir + non-em
   for (const dir of dirs) {
     const file = join(skillsDir, dir, "SKILL.md");
     assert.ok(existsSync(file), `SKILL.md missing for skill ${dir}`);
-    const raw = readFileSync(file, "utf8");
+    // Windows 检出可能带 CRLF 行尾，统一归一化后再做 frontmatter 匹配
+    const raw = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
     assert.match(raw, /^---\n/, `${dir}: frontmatter required at file head`);
     const match = raw.match(/^---\n([\s\S]*?)\n---/);
     assert.ok(match, `${dir}: frontmatter block must close`);

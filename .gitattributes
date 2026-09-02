@@ -1,0 +1,2 @@
+# 统一文本文件行尾为 LF：Windows 检出、CI 与 npm pack 产物字节一致
+* text=auto eol=lf

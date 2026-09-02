@@ -5,6 +5,7 @@
  * 不允许用 0 伪造（计划 §3.2）。本模块是唯一的 schema 权威：
  * 录制器、sink、store、聚合器都从这里取常量与校验逻辑。
  */
+import { randomBytes } from "node:crypto";
 
 export const SCHEMA_VERSION = "1.0";
 export const SUPPORTED_SCHEMA_MAJOR = 1;
@@ -96,9 +97,9 @@ export function newId(kind) {
 }
 
 function cryptoRandomHex(bytes) {
-  const buf = new Uint8Array(bytes);
-  globalThis.crypto.getRandomValues(buf);
-  return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
+  // node:crypto 的 randomBytes 在所有受支持 Node 版本（≥18）可用；
+  // globalThis.crypto 是 Node 19+ 的全局，Node 18 上是 undefined
+  return randomBytes(bytes).toString("hex");
 }
 
 function isPlainObject(value) {
