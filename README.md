@@ -27,6 +27,22 @@ dsh-telemetry 是 Harness 运行可观测性插件，不负责业务分析，不
 
 > Make Harness behavior measurable without collecting sensitive conversation content by default.
 
+## 界面预览
+
+**一屏总览**——请求、P95 延迟、首 Token 延迟、Token/缓存命中、估算成本（配置价格目录后自动计算）与错误分类，全部指标标注样本数，可由原始事件重算：
+
+![仪表盘总览：KPI 卡片、Token 趋势与错误分类](docs/screenshots/dashboard.png)
+
+**工具与插件耗时**——循环调用 ⚠ 提示、需用户确认的调用计数、插件 hook 错误统计；下方请求时间线以状态点区分成功/失败/取消，重试请求带 ↻ 标记：
+
+![工具耗时、循环提示与插件 Hook 统计](docs/screenshots/tools-plugins.png)
+
+**Trace 详情**——点击任意请求展开 span 树与事件时间线；下图展示 deepseek-reasoner 触发 rate_limit 后回退 deepseek-chat 成功的完整链路（每个 attempt 独立计时）：
+
+![Trace 重试回退链详情](docs/screenshots/trace-fallback.png)
+
+> 以上截图为本地只读 Web UI（`--ui`，仅绑定 127.0.0.1），数据为演示数据集；默认配置下不采集 prompt / response / 文件内容 / 密钥。
+
 ## 安装
 
 作为 DSH 插件（推荐）：
