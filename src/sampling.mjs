@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 采样（计划 §7.3）。
+ * dsh-local-telemetry — 采样（计划 §7.3）。
  *
  * 决策以 trace 为粒度（同一 trace_id 的所有事件同决策，trace 不断裂），
  * 通过 salted hash 把 trace_id 确定性映射到 [0,1) 与 sample_rate 比较。

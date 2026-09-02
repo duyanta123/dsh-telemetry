@@ -1,6 +1,14 @@
 # dsh-telemetry
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4c1d95)](https://github.com/topics/dsh-plugin)
+[![CI](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml/badge.svg)](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/badge/npm-dsh--local--telemetry-blue)](https://www.npmjs.com/package/dsh-local-telemetry)
+[![version](https://img.shields.io/badge/version-0.1.0-green)](CHANGELOG.md)
+
 本地优先的 Harness 运行遥测插件：记录请求、模型、工具与插件生命周期指标（延迟、Token、成本、错误、缓存），默认不采集内容。
+
+> npm 包名为 `dsh-local-telemetry`（`dsh-telemetry` 在 npm 上已被第三方占用）；GitHub 仓库名保持 `dsh-telemetry`，两者指向同一项目。
 
 ## 定位
 
@@ -21,8 +29,16 @@ dsh-telemetry 是 Harness 运行可观测性插件，不负责业务分析，不
 
 ## 安装
 
+作为 DSH 插件（推荐）：
+
 ```bash
-dsh plugin --profile web add "github:duyanta123/DSH-TELEMETRY#main"
+dsh plugin --profile web add "github:duyanta123/dsh-telemetry#main"
+```
+
+或从 npm 安装（作为库或独立 CLI 使用）：
+
+```bash
+npm install dsh-local-telemetry
 ```
 
 安装后重启 `dsh --profile web`，即可通过 `telemetry-runbook` 技能使用查询 CLI：
@@ -41,7 +57,7 @@ node bin/telemetry.mjs --ui --port 47610
 事件经显式适配器接入（当前推荐的唯一方式）：
 
 ```js
-import { createRecorder } from 'dsh-telemetry/telemetry';
+import { createRecorder } from 'dsh-local-telemetry/telemetry';
 
 const recorder = createRecorder({
   config: {
@@ -75,7 +91,7 @@ await recorder.close();
 ### 2. 聚合读取（上层插件可引用）
 
 ```js
-import { openStore, aggregateEvents, buildTraceView } from 'dsh-telemetry/telemetry';
+import { openStore, aggregateEvents, buildTraceView } from 'dsh-local-telemetry/telemetry';
 
 const store = await openStore({ store: 'jsonl', path: '~/.dsh/telemetry' });
 const { events } = await store.readEvents({ fromMs: Date.now() - 3600e3 });
@@ -107,7 +123,7 @@ node bin/telemetry.mjs --ui --port 47610
 | `--plugin <name>` | - | 按插件过滤 |
 | `--event <name\|prefix.*>` | - | 按事件过滤（如 model.*） |
 | `--group-by <key>` | - | 分组：model\|plugin\|tool\|profile\|day |
-| `--format text\|json\|markdown` | text | 输出格式 |
+| `--format text\|json\|markdown` | text | 输出格式（`--export` 未指定时按扩展名 `.json`/`.md` 推断） |
 | `--errors-only` | - | 只看错误与取消 |
 | `--slow-over-ms <N>` | - | 只看耗时 ≥ N 的请求 |
 | `--sample-rate <0..1>` | - | 采样率（录制侧配置） |

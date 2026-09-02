@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * dsh-telemetry — 查询 CLI（计划 §10）。
+ * dsh-local-telemetry — 查询 CLI（计划 §10）。
  *
  *   node bin/telemetry.mjs --status
  *   node bin/telemetry.mjs --summary --since 24h --group-by model
@@ -22,7 +22,7 @@ import { loadPriceCatalog } from "../src/cost.mjs";
 import { renderTextSummary, renderMarkdownReport, renderTraceText, renderGroupedText } from "../src/report.mjs";
 import { createTelemetryServer } from "../src/server.mjs";
 
-const USAGE = `dsh-telemetry — 本地 Harness 遥测查询 CLI（v0.1.0）
+const USAGE = `dsh-local-telemetry — 本地 Harness 遥测查询 CLI（v0.1.0）
 
 用法：
   node bin/telemetry.mjs --status
@@ -43,7 +43,7 @@ const USAGE = `dsh-telemetry — 本地 Harness 遥测查询 CLI（v0.1.0）
   --plugin <name>           按插件过滤
   --event <name|prefix.*>   按事件过滤（如 model.*）
   --group-by <key>          分组：model | plugin | tool | profile | day
-  --format text|json|markdown  输出格式（默认 text）
+  --format text|json|markdown  输出格式（默认 text；--export 未指定时按扩展名 .json/.md 推断）
   --errors-only             只看错误与取消
   --slow-over-ms <N>        只看耗时 ≥ N 的请求
   --sample-rate <0..1>      采样率（录制侧配置，查询命令接受但仅用于配置覆盖）
@@ -77,8 +77,21 @@ function parseArgs(argv) {
 }
 
 function fail(message, code = 2) {
-  console.error(`dsh-telemetry: ${message}`);
+  console.error(`dsh-local-telemetry: ${message}`);
   process.exit(code);
+}
+
+/** --json 显式优先；其次 --format；--export 时按目标扩展名推断（.json→json，.md→markdown）；默认 text。 */
+function resolveFormat(flags) {
+  if (flags.get("json")) return "json";
+  const explicit = flags.get("format");
+  if (explicit) return String(explicit);
+  const exportTarget = flags.get("export");
+  if (typeof exportTarget === "string") {
+    if (exportTarget.endsWith(".json")) return "json";
+    if (exportTarget.endsWith(".md")) return "markdown";
+  }
+  return "text";
 }
 
 async function main() {
@@ -107,7 +120,7 @@ async function main() {
     for (const error of resolution.errors) console.error(`[config] ${error}`);
   }
   const config = resolution.config;
-  const format = flags.get("json") ? "json" : String(flags.get("format") ?? "text");
+  const format = resolveFormat(flags);
   const dataPath = flags.get("path") ? resolveDataPath(String(flags.get("path"))) : resolveDataPath(config.path);
 
   if (flags.get("store") === "sqlite" && config.store === "sqlite") {
@@ -170,7 +183,7 @@ async function main() {
       server.listen(port, "127.0.0.1", resolveListen);
       server.on("error", rejectListen);
     });
-    console.log(`dsh-telemetry UI: http://127.0.0.1:${port}/ (localhost only; Ctrl+C to stop)`);
+    console.log(`dsh-local-telemetry UI: http://127.0.0.1:${port}/ (localhost only; Ctrl+C to stop)`);
     const shutdown = () => {
       server.close();
       if (typeof store.close === "function") store.close();
@@ -244,7 +257,7 @@ async function main() {
     const traceId = String(flags.get("trace"));
     const { events, skipped } = await store.readEvents({ traceId });
     if (events.length === 0) {
-      console.error(`dsh-telemetry: no events found for trace ${traceId} (skipped: invalid=${skipped.invalid} schema=${skipped.schema_incompatible})`);
+      console.error(`dsh-local-telemetry: no events found for trace ${traceId} (skipped: invalid=${skipped.invalid} schema=${skipped.schema_incompatible})`);
       process.exit(1);
     }
     const view = buildTraceView(events);
@@ -277,6 +290,6 @@ async function outputResult(payload, format, flags, renderText, meta, kind) {
 }
 
 main().catch((error) => {
-  console.error(`dsh-telemetry: ${error?.stack ?? error}`);
+  console.error(`dsh-local-telemetry: ${error?.stack ?? error}`);
   process.exit(1);
 });

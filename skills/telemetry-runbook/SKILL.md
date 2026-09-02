@@ -5,7 +5,7 @@ description: 本地遥测查询与诊断：查询 Harness 请求、模型、工�
 
 # telemetry-runbook
 
-dsh-telemetry runbook。遥测是旁路能力：查询只读本地存储，不联网；默认不采集 prompt / response / 文件内容 / 密钥。CLI 路径以仓库根为基准（插件安装后为 `<bundle-dir>/bin/telemetry.mjs`）。
+dsh-local-telemetry runbook（GitHub 仓库 dsh-telemetry；npm 名 dsh-telemetry 已被第三方占用）。遥测是旁路能力：查询只读本地存储，不联网；默认不采集 prompt / response / 文件内容 / 密钥。CLI 路径以仓库根为基准（插件安装后为 `<bundle-dir>/bin/telemetry.mjs`）。
 
 ## 调用方式
 
@@ -49,7 +49,7 @@ node bin/telemetry.mjs --config telemetry.json --summary --since 24h
 宿主生命周期 Hook 尚未确认，事件经显式适配器接入：
 
 ```js
-import { createRecorder, createEventBusAdapter } from 'dsh-telemetry/telemetry';
+import { createRecorder, createEventBusAdapter } from 'dsh-local-telemetry/telemetry';
 
 const recorder = createRecorder({ config: { path: '~/.dsh/telemetry', capture_metadata: 'safe' } });
 await recorder.start();
@@ -67,7 +67,7 @@ await recorder.close(); // 退出前 flush；失败不阻塞
 聚合读取（供 dsh-test-insight 等按 §15 边界通过公开聚合接口使用）：
 
 ```js
-import { openStore, aggregateEvents, buildTraceView } from 'dsh-telemetry/telemetry';
+import { openStore, aggregateEvents, buildTraceView } from 'dsh-local-telemetry/telemetry';
 const store = await openStore({ store: 'jsonl', path: '~/.dsh/telemetry' });
 const { events } = await store.readEvents({ fromMs: Date.now() - 3600e3 });
 const summary = aggregateEvents(events, { catalog: null });

@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — JSONL sink（计划 §6.3 / §7 / §8.1）。
+ * dsh-local-telemetry — JSONL sink（计划 §6.3 / §7 / §8.1）。
  *
  * 行为契约：
  * - 追加写，一行一个完整事件；写入串行化，不产生半行 JSON；
@@ -247,7 +247,7 @@ export class JsonlSink {
     if (this._warnedWriteError) return;
     this._warnedWriteError = true;
     // 本地告警：仅 stderr，一次性，不阻塞业务
-    console.warn?.(`[dsh-telemetry] telemetry write failed (${this.lastWriteError}); events will be dropped until it recovers`);
+    console.warn?.(`[dsh-local-telemetry] telemetry write failed (${this.lastWriteError}); events will be dropped until it recovers`);
   }
 
   async _loadMeta() {

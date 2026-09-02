@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 存储读取层（计划 §8）。
+ * dsh-local-telemetry — 存储读取层（计划 §8）。
  *
  * JSONL 与 SQLite 共享同一读取接口与过滤语义；聚合器只面对事件数组，
  * 因此两种后端对同一事件集产生一致聚合结果（Phase 5 验收）。

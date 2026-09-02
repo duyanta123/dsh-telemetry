@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 公共库接口（exports 子路径 `dsh-telemetry/telemetry`）。
+ * dsh-local-telemetry — 公共库接口（exports 子路径 `dsh-local-telemetry/telemetry`）。
  *
  * 上层插件（dsh-change-impact / dsh-test-insight 等）与宿主集成代码从这里
  * 引入；插件入口（plugin/index.js）只负责 skills 注册与关闭时 flush。

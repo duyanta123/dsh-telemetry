@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 隐私与脱敏（计划 §6）。
+ * dsh-local-telemetry — 隐私与脱敏（计划 §6）。
  *
  * 原则：内容字段默认不存在（不是采集后再脱敏）；仅当 capture_metadata="safe"
  * 时才对可选 metadata 执行脱敏，且只保留规则名与命中数量，不保存原文。

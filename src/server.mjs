@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 本地只读 Web UI 服务（计划 §9.3 / Phase 5）。
+ * dsh-local-telemetry — 本地只读 Web UI 服务（计划 §9.3 / Phase 5）。
  *
  * 边界：
  * - 只读：仅 GET，数据经聚合接口输出，不暴露原始事件文件路径，不输出内容字段；

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync, cpSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -12,11 +12,20 @@ import { aggregateEvents } from "../src/aggregate.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureData = join(root, "test", "fixtures", "telemetry-data");
 
+// cpSync 递归复制在 Windows 非 ASCII 路径下触发 Node 崩溃（0xC0000409），改用逐条目复制
+function copyDir(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    if (entry.isDirectory()) copyDir(join(src, entry.name), join(dest, entry.name));
+    else copyFileSync(join(src, entry.name), join(dest, entry.name));
+  }
+}
+
 function copyFixture() {
   const dir = mkdtempSync(join(tmpdir(), "dsh-tel-store-"));
   const target = join(dir, "data");
   mkdirSync(target);
-  cpSync(fixtureData, target, { recursive: true });
+  copyDir(fixtureData, target);
   return target;
 }
 

@@ -64,7 +64,7 @@ test("sink: write failure is fail-open — counted, never thrown, local warn thr
   assert.equal(sink.counters.written, 0);
   assert.equal(sink.counters.dropped_write, 2);
   assert.ok(sink.lastWriteError);
-  assert.equal(warns.filter((w) => w.includes("dsh-telemetry")).length, 1, "warn once until recovery");
+  assert.equal(warns.filter((w) => w.includes("dsh-local-telemetry")).length, 1, "warn once until recovery");
   await sink.close();
 });
 

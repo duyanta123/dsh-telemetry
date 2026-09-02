@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 事件契约（schema version 1.0）。
+ * dsh-local-telemetry — 事件契约（schema version 1.0）。
  *
  * 固定 12 种生命周期事件名（计划 §2）；未知指标一律为 null / 缺省，
  * 不允许用 0 伪造（计划 §3.2）。本模块是唯一的 schema 权威：

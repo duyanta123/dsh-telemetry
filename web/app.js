@@ -1,4 +1,4 @@
-/* dsh-telemetry Web UI 逻辑 — 零依赖，只调用本地只读 API。 */
+/* dsh-local-telemetry Web UI 逻辑 — 零依赖，只调用本地只读 API。 */
 "use strict";
 
 const state = { range: "24h", traceId: null };

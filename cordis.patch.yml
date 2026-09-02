@@ -1,4 +1,4 @@
-# dsh-telemetry — DSH bundle patch。
+# dsh-local-telemetry — DSH bundle patch。
 #
 # 当某个 profile 在 dsh.profile.bundles 中列出本包时（dsh plugin add 即完成
 # 此事），dsh 启动时把本补丁打入配置树：插入本包插件行，加载 package.json
@@ -7,5 +7,5 @@
 # 遥测是旁路能力：插件入口只注册技能根、按配置惰性创建 sink，并在关闭时
 # flush；不注册任何会改变请求语义的人设或工具。
 - insert:
-    - id: dsh-telemetry
-      name: dsh-telemetry
+    - id: dsh-local-telemetry
+      name: dsh-local-telemetry

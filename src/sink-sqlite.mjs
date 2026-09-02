@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — SQLite sink（计划 §8.2 / Phase 5，可选后端）。
+ * dsh-local-telemetry — SQLite sink（计划 §8.2 / Phase 5，可选后端）。
  *
  * 零 npm 依赖：使用 Node ≥22.5 内置 node:sqlite（宿主已有 SQLite 能力路径）。
  * Node 18/20 下 sqliteAvailable() 返回不可用及原因，CLI/录制器优雅降级，

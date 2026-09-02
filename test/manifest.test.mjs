@@ -77,7 +77,7 @@ test("docs presence: README, schema doc, configuration doc, config sample, price
 
 test("plan document records feasibility review and phase completion", () => {
   const plan = readFileSync(join(root, "DSH-TELEMETRY-开发计划.md"), "utf8");
-  assert.ok(/## 0\. 可行性审查/.test(plan), "plan should have feasibility review section");
+  assert.ok(/## 0\. (最终)?可行性审查/.test(plan), "plan should have feasibility review section");
   assert.ok(/技术可行性/.test(plan), "feasibility review should include technical feasibility");
   assert.ok(/隐私与安全设计/.test(plan), "feasibility review should include privacy design");
   assert.ok(/性能与可靠性/.test(plan), "feasibility review should include performance");

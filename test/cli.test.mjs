@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtempSync, cpSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, existsSync, readFileSync, readdirSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,15 @@ const exec = promisify(execFile);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = join(root, "bin", "telemetry.mjs");
 const fixtureData = join(root, "test", "fixtures", "telemetry-data");
+
+// cpSync 递归复制在 Windows 非 ASCII 路径下触发 Node 崩溃（0xC0000409），改用逐条目复制
+function copyDir(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    if (entry.isDirectory()) copyDir(join(src, entry.name), join(dest, entry.name));
+    else copyFileSync(join(src, entry.name), join(dest, entry.name));
+  }
+}
 
 async function runCli(args) {
   try {
@@ -31,7 +40,7 @@ test("cli: --help exits 0 with usage", async () => {
 test("cli: no args exits 2 with usage on stdout", async () => {
   const { code, stdout } = await runCli([]);
   assert.equal(code, 2);
-  assert.ok(stdout.includes("dsh-telemetry"));
+  assert.ok(stdout.includes("dsh-local-telemetry"));
 });
 
 test("cli: --status reports jsonl store and zero counters for fixture", async () => {
@@ -149,7 +158,7 @@ test("cli: --purge --before removes old files only", async () => {
   const dir = mkdtempSync(join(tmpdir(), "dsh-tel-purge-cli-"));
   const dataDir = join(dir, "data");
   mkdirSync(dataDir);
-  cpSync(fixtureData, dataDir, { recursive: true });
+  copyDir(fixtureData, dataDir);
   const oldFile = join(dataDir, "2026-07-01.jsonl");
   await import("node:fs/promises").then((fs) => fs.writeFile(oldFile, "{}\n", "utf8"));
   const { code, stdout } = await runCli(["--purge", "--before", "30d", "--path", dataDir, "--json"]);

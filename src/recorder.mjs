@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 独立事件记录器（计划 §2 / Phase 1）。
+ * dsh-local-telemetry — 独立事件记录器（计划 §2 / Phase 1）。
  *
  * 职责链：ID 补全 → 名称哈希（可选）→ metadata 脱敏（仅 safe 模式）→
  * 按 trace 采样 → sink。全部 fail-open：任何异常只计数，不影响业务请求。

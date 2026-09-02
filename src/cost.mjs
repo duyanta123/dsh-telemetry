@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 成本模型（计划 §5）。
+ * dsh-local-telemetry — 成本模型（计划 §5）。
  *
  * 价格不入代码：来自版本化目录文件（currency / effective_at / models）。
  * 只有 模型名、Token 用量、价格 三者齐备才计算；否则 cost=null 并给出原因，

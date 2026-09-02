@@ -1,7 +1,7 @@
 {
-  "name": "dsh-telemetry",
+  "name": "dsh-local-telemetry",
   "version": "0.1.0",
-  "description": "本地优先的 Harness 运行遥测插件：记录请求、模型、工具与插件生命周期指标（延迟、Token、成本、错误、缓存），默认不采集内容。Local-first Harness telemetry plugin for DeepSeek Harness.",
+  "description": "本地优先的 Harness 运行遥测插件：记录请求、模型、工具与插件生命周期指标（延迟、Token、成本、错误、缓存），默认不采集内容。Local-first Harness telemetry plugin for DeepSeek Harness. npm 包 dsh-local-telemetry（dsh-telemetry 名已被第三方占用）。",
   "type": "module",
   "main": "./plugin/index.js",
   "exports": {
@@ -11,7 +11,7 @@
   },
   "bin": {
     "telemetry": "./bin/telemetry.mjs",
-    "dsh-telemetry": "./bin/telemetry.mjs"
+    "dsh-local-telemetry": "./bin/telemetry.mjs"
   },
   "files": [
     "plugin/index.js",
@@ -25,6 +25,7 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
+    "PUBLISHING.md",
     "DSH-TELEMETRY-开发计划.md"
   ],
   "scripts": {

@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 聚合器（计划 §4 / Phase 2）。
+ * dsh-local-telemetry — 聚合器（计划 §4 / Phase 2）。
  *
  * 只从真实事件推导：started/completed 按 span_id 配对得时长（缺失端点则
  * null，绝不臆造）；未知指标为 null 不补 0；所有样本数与分位数方法
@@ -453,7 +453,7 @@ export function aggregateEvents(events, { catalog = null, catalogPath = null, ge
   const requestsTotal = requests.length;
   return {
     schema_version: "1.0",
-    tool: { name: "dsh-telemetry", version: "0.1.0" },
+    tool: { name: "dsh-local-telemetry", version: "0.1.0" },
     generated_at: generated,
     window,
     data_completeness: {

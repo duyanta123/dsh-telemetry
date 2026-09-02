@@ -1,4 +1,4 @@
-/* dsh-telemetry Web UI — 本地只读仪表盘。
+/* dsh-local-telemetry Web UI — 本地只读仪表盘。
    设计复刻自 21st.dev「Advanced Stats」仪表盘模式：
    暗色底、KPI 卡片、渐变面积图、极简柱状趋势、时间线。零外部依赖。 */
 

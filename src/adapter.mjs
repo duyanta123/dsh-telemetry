@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 宿主适配器（计划 §2）。
+ * dsh-local-telemetry — 宿主适配器（计划 §2）。
  *
  * DSH Harness 的生命周期 Hook（request.started / model.completed / …）目前
  * 无法确认其真实暴露面。按计划 §2 的降级路径：

@@ -1,5 +1,5 @@
 /**
- * dsh-telemetry — 报告渲染（计划 §9）。
+ * dsh-local-telemetry — 报告渲染（计划 §9）。
  *
  * 文本摘要（§9.1）与 Markdown 报告（§9.2）。所有百分比、分位数和成本
  * 都注明时间范围、样本数和数据完整性；成本恒标注「估算，非账单」。
@@ -112,7 +112,7 @@ export function renderMarkdownReport(summary, meta = {}) {
   const out = [];
   out.push("# Harness 遥测报告");
   out.push("");
-  out.push(`> 由 \`dsh-telemetry\` 生成于 ${s.generated_at}；成本为估算值，非实际账单。`);
+  out.push(`> 由 \`dsh-local-telemetry\` 生成于 ${s.generated_at}；成本为估算值，非实际账单。`);
   out.push("");
 
   out.push("## 1. 时间范围与数据完整性");
