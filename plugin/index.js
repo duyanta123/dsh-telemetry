@@ -16,6 +16,7 @@ import { createRequire } from "node:module";
 import { createRecorder } from "../src/recorder.mjs";
 
 export const name = "dsh-local-telemetry";
+export const inject = ["skills"];
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const skillsDir = join(rootDir, "skills");

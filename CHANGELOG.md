@@ -2,6 +2,12 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 约定。
 
+## Unreleased
+
+- 新增固定 `@deepseek-ai/dsh@0.1.2-rc.1` 的 `npm run test:compat` 门禁及 Windows/Ubuntu Node 22.12 CI，覆盖隔离 profile 的 add、配置 dump 和有限时长启动。
+- 文档明确三层兼容性：JSONL/纯 CLI Node >=18、SQLite Node >=22.5、最新 DSH 宿主验证 Node >=22.12。
+- 修复插件入口遗漏 `skills` 服务注入声明的问题，确保 DSH 启动时实际注册 telemetry runbook，而不是静默降级。
+
 ## 0.1.0 - 2026-09-02
 
 - 首个公开发布版本。
@@ -79,4 +85,3 @@
 - Phase 2 验收：摘要可由原始事件重算。
 
 - Phase 5 验收：JSONL 与 SQLite 对同一事件集产生一致聚合结果。
-

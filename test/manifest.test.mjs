@@ -21,6 +21,11 @@ test("bundle manifest: package.json declares dsh.bundle.patch and a loadable mai
   assert.equal(pkg.exports?.["."], pkg.main, 'exports "." must resolve to the plugin entry');
 });
 
+test("plugin entry declares the skills service injection it reads", () => {
+  const source = readFileSync(join(root, pkg.main), "utf8");
+  assert.match(source, /export const inject\s*=\s*\[[^\]]*["']skills["'][^\]]*\]/, "ctx.skills cannot be read unless the skills service is injected");
+});
+
 test("bundle manifest: cordis.patch.yml uses the config-tree insert format", () => {
   const raw = readFileSync(join(root, pkg.dsh.bundle.patch), "utf8");
   assert.match(raw, /-\s+insert:/, 'manifest must be a config-tree patch: "- insert:" list');

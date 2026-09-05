@@ -30,6 +30,7 @@
   ],
   "scripts": {
     "test": "node --test test/schema.test.mjs test/config.test.mjs test/privacy.test.mjs test/cost.test.mjs test/sink.test.mjs test/recorder.test.mjs test/store.test.mjs test/aggregate.test.mjs test/cli.test.mjs test/server.test.mjs test/manifest.test.mjs",
+    "test:compat": "node test/dsh-compat.test.mjs",
     "prepublishOnly": "npm test",
     "check": "node --check bin/telemetry.mjs && node --check src/index.mjs && node --check src/schema.mjs && node --check src/config.mjs && node --check src/privacy.mjs && node --check src/sampling.mjs && node --check src/cost.mjs && node --check src/sink-jsonl.mjs && node --check src/sink-sqlite.mjs && node --check src/adapter.mjs && node --check src/recorder.mjs && node --check src/store.mjs && node --check src/aggregate.mjs && node --check src/report.mjs && node --check src/server.mjs && node --check plugin/index.js"
   },

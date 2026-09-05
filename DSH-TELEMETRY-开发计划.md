@@ -85,7 +85,7 @@
 
 - **宿主 Hook 能力**：DSH Harness 的生命周期 Hook（`request.started` / `model.completed` / …）当前无法确认其真实暴露面。按计划 §2 的降级路径，已实现独立事件记录器与显式适配器接口（`src/adapter.mjs`），只接入已确认存在的生命周期事件。缺失指标返回 `null` / `unavailable`，不伪造。
 
-- **技术栈选择**：零构建 ESM 模块；JSONL 后端零依赖；SQLite 后端使用 Node ≥22.5 内置 `node:sqlite`（零 npm 依赖），Node 18/20 优雅降级为不可用。
+- **技术栈选择**：零构建 ESM 模块；JSONL 和纯 CLI 能力独立支持 Node ≥18；SQLite 后端使用 Node ≥22.5 内置 `node:sqlite`（零 npm 依赖）；作为 DSH 0.1.2-rc.1 宿主统一按 Node ≥22.12 验证。
 
 - **事件契约**：12 种生命周期事件（`request.started` / `model.completed` / `tool.completed` 等）已定义；失败/超时/取消通过 `result.status` 表达，无独立 `tool.failed` 事件名。`src/schema.mjs` 提供校验与序列化，未知指标为 null 不补 0。
 
@@ -123,7 +123,7 @@
 
 ### 0.5 与参考项目对齐
 
-- 与 `dsh-repo-scanner` 对齐：package.json `dsh.bundle.patch` + cordis.patch.yml `- insert:` 格式 + FileSystemSkillProvider 模式 + CI 矩阵（ubuntu/windows × node 18/20/22）。
+- 与 `dsh-repo-scanner` 对齐：package.json `dsh.bundle.patch` + cordis.patch.yml `- insert:` 格式 + FileSystemSkillProvider 模式；Node 18/20/22 仅为独立脚本回归，另有 DSH 0.1.2-rc.1 / Node 22.12 compat 门禁。
 
 - 测试框架：使用 `node:test`；契约测试、隐私测试、性能测试、跨平台测试覆盖。
 
@@ -859,7 +859,7 @@ DSH 插件名：`dsh-telemetry`，插件入口只负责：
 
 - Windows、Ubuntu。
 
-- Node 18、20、22。
+- Node 18、20、22（独立 JSONL/CLI 回归）；SQLite 最低 Node 22.5；DSH 宿主 compat 固定 Node 22.12。
 
 - CRLF、UTF-8 BOM、中文路径。
 
@@ -951,4 +951,3 @@ DSH Harness
 - [ ] DSH 插件安装后不改变请求语义。
 
 - [ ] README、schema、配置样例、CHANGELOG 和发布包一致。
-

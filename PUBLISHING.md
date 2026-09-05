@@ -24,7 +24,7 @@
 
 ### GitHub
 
-1. push `main`，确认 GitHub Actions CI 全绿（Node 18/20/22 × Windows/Ubuntu）。
+1. push `main`，确认独立 JSONL/CLI 回归 CI 全绿（Node 18/20/22 × Windows/Ubuntu），并确认 Node 22.12 的 DSH compat job 通过。
 2. 打 tag `v0.1.0` 并推送。
 3. 给仓库添加 GitHub topic `dsh-plugin`（awesome 收录门槛之一）。
 

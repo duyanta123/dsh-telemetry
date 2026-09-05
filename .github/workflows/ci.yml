@@ -18,9 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Syntax check (all modules)
+      - name: Syntax check (independent telemetry)
         run: npm run check
-      - name: Tests (contract + privacy + fail-open + parity)
+      - name: Independent telemetry regression
         run: npm test
       - name: CLI smoke test
         shell: bash
@@ -28,3 +28,17 @@ jobs:
           node bin/telemetry.mjs --status --path test/fixtures/telemetry-data --json
           node bin/telemetry.mjs --summary --path test/fixtures/telemetry-data --format text
           node bin/telemetry.mjs --trace trace-001 --path test/fixtures/telemetry-data
+
+  compat:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+      - name: DSH 0.1.2-rc.1 compatibility
+        run: npm run test:compat
