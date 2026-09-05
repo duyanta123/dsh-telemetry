@@ -8,7 +8,7 @@
 
 ## 发布前检查清单
 
-1. 运行 `npm test`（127/127 全绿）与 `npm run check`（全模块语法检查），确保全部通过。
+1. 运行 `npm test`（128/128 全绿）与 `npm run check`（全模块语法检查），确保全部通过。
 2. 运行 `npm pack --dry-run`，确认包含 `plugin/index.js`、`cordis.patch.yml`、`skills/`、`src/`、`bin/`、`web/`、`docs/`、`examples/`、`README.md`、`CHANGELOG.md`、`LICENSE`、`PUBLISHING.md`、`DSH-TELEMETRY-开发计划.md`。
 3. 版本一致性：`package.json` version、`bin/telemetry.mjs` USAGE 版本号、`src/aggregate.mjs` `tool.version`、`CHANGELOG.md` 发布段、git tag 五处保持一致（manifest 契约测试覆盖前三处）。
 
@@ -25,7 +25,7 @@
 ### GitHub
 
 1. push `main`，确认独立 JSONL/CLI 回归 CI 全绿（Node 18/20/22 × Windows/Ubuntu），并确认 Node 22.19 的 DSH compat job 通过。
-2. 打 tag `v0.1.0` 并推送。
+2. 打 tag `v0.1.1` 并推送。
 3. 给仓库添加 GitHub topic `dsh-plugin`（awesome 收录门槛之一）。
 
 ### npm

@@ -4,7 +4,7 @@
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4c1d95)](https://github.com/topics/dsh-plugin)
 [![CI](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml/badge.svg)](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/badge/npm-dsh--local--telemetry-blue)](https://www.npmjs.com/package/dsh-local-telemetry)
-[![version](https://img.shields.io/badge/version-0.1.0-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.1.1-green)](CHANGELOG.md)
 
 本地优先的 Harness 运行遥测插件：记录请求、模型、工具与插件生命周期指标（延迟、Token、成本、错误、缓存），默认不采集内容。
 
