@@ -51,7 +51,7 @@ dsh-telemetry 是 Harness 运行可观测性插件，不负责业务分析，不
 dsh plugin --profile web add "github:duyanta123/dsh-telemetry#main"
 ```
 
-兼容性分层：JSONL 和纯 CLI 能力可独立运行在 Node.js >= 18；SQLite 后端要求 Node.js >= 22.5；作为 DSH 0.1.2-rc.1 插件验证统一使用 Node.js >= 22.12。运行 `npm run test:compat` 可执行隔离 profile 的 add、dump-config 和启动 smoke test。
+兼容性分层：JSONL 和纯 CLI 能力可独立运行在 Node.js >= 18；SQLite 后端要求 Node.js >= 22.5；作为 DSH 0.1.2-rc.1 插件验证统一使用 Node.js >= 22.19。运行 `npm run test:compat` 可执行隔离 profile 的 add、dump-config 和启动 smoke test。
 
 或从 npm 安装（作为库或独立 CLI 使用）：
 
