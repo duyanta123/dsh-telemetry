@@ -22,7 +22,7 @@ import { loadPriceCatalog } from "../src/cost.mjs";
 import { renderTextSummary, renderMarkdownReport, renderTraceText, renderGroupedText } from "../src/report.mjs";
 import { createTelemetryServer } from "../src/server.mjs";
 
-const USAGE = `dsh-local-telemetry — 本地 Harness 遥测查询 CLI（v0.1.1）
+const USAGE = `dsh-local-telemetry — 本地 Harness 遥测查询 CLI（v0.1.2）
 
 用法：
   node bin/telemetry.mjs --status

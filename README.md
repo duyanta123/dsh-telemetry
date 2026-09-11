@@ -1,65 +1,67 @@
 # dsh-telemetry
 
+English | [简体中文](README.zh-CN.md)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4c1d95)](https://github.com/topics/dsh-plugin)
 [![CI](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml/badge.svg)](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/badge/npm-dsh--local--telemetry-blue)](https://www.npmjs.com/package/dsh-local-telemetry)
-[![version](https://img.shields.io/badge/version-0.1.1-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.1.2-green)](CHANGELOG.md)
 
-本地优先的 Harness 运行遥测插件：记录请求、模型、工具与插件生命周期指标（延迟、Token、成本、错误、缓存），默认不采集内容。
+A local-first Harness telemetry plugin: records request, model, tool, and plugin lifecycle metrics (latency, tokens, cost, errors, cache) — no conversation content collected by default.
 
-> npm 包名为 `dsh-local-telemetry`（`dsh-telemetry` 在 npm 上已被第三方占用）；GitHub 仓库名保持 `dsh-telemetry`，两者指向同一项目。
+> The npm package is named `dsh-local-telemetry` (the `dsh-telemetry` name on npm is taken by a third party); the GitHub repository remains `dsh-telemetry`. Both refer to the same project.
 
-## 定位
+## Positioning
 
-dsh-telemetry 是 Harness 运行可观测性插件，不负责业务分析，不负责修改请求内容，也不负责把用户对话上传到第三方平台。
+dsh-telemetry is a Harness runtime observability plugin. It does not do business analysis, does not modify request content, and does not upload user conversations to any third-party platform.
 
-它回答：
-- 一次请求花了多少时间？
-- 时间消耗在模型、工具、插件还是排队？
-- 输入/输出 Token 和重试成本是多少？
-- 哪些工具调用最慢、最容易失败？
-- 哪些插件发生异常或阻塞？
-- 缓存是否命中，模型路由是否节省了成本？
-- 是否存在上下文过大、循环工具调用和异常重试？
+It answers:
+- How long did a request take?
+- Where did the time go — model, tool, plugin, or queuing?
+- What are the input/output token counts and retry costs?
+- Which tool calls are slowest and most failure-prone?
+- Which plugins throw exceptions or block?
+- Is the cache hitting, and is model routing saving cost?
+- Are there oversized contexts, tool-call loops, or abnormal retries?
 
-一句话定位：
+One-line positioning:
 
 > Make Harness behavior measurable without collecting sensitive conversation content by default.
 
-## 界面预览
+## UI Preview
 
-**一屏总览**——请求、P95 延迟、首 Token 延迟、Token/缓存命中、估算成本（配置价格目录后自动计算）与错误分类，全部指标标注样本数，可由原始事件重算：
+**Dashboard overview** — requests, P95 latency, time-to-first-token, tokens/cache hits, estimated cost (computed automatically once a price catalog is configured), and error classification. Every metric is annotated with its sample count and can be recomputed from raw events:
 
-![仪表盘总览：KPI 卡片、Token 趋势与错误分类](docs/screenshots/dashboard.png)
+![Dashboard: KPI cards, token trends, and error classification](docs/screenshots/dashboard.png)
 
-**工具与插件耗时**——循环调用 ⚠ 提示、需用户确认的调用计数、插件 hook 错误统计；下方请求时间线以状态点区分成功/失败/取消，重试请求带 ↻ 标记：
+**Tool & plugin timing** — loop-call ⚠ warnings, counts of calls requiring user confirmation, and plugin hook error statistics; the request timeline below uses status dots for success/failure/cancel, with ↻ marks on retried requests:
 
-![工具耗时、循环提示与插件 Hook 统计](docs/screenshots/tools-plugins.png)
+![Tool timing, loop warnings, and plugin hook stats](docs/screenshots/tools-plugins.png)
 
-**Trace 详情**——点击任意请求展开 span 树与事件时间线；下图展示 deepseek-reasoner 触发 rate_limit 后回退 deepseek-chat 成功的完整链路（每个 attempt 独立计时）：
+**Trace details** — click any request to expand its span tree and event timeline; the screenshot below shows the full chain of deepseek-reasoner hitting rate_limit and falling back to deepseek-chat successfully (each attempt timed independently):
 
-![Trace 重试回退链详情](docs/screenshots/trace-fallback.png)
+![Trace retry and fallback chain](docs/screenshots/trace-fallback.png)
 
-> 以上截图为本地只读 Web UI（`--ui`，仅绑定 127.0.0.1），数据为演示数据集；默认配置下不采集 prompt / response / 文件内容 / 密钥。
+> All screenshots show the local read-only Web UI (`--ui`, bound to 127.0.0.1 only) with a demo dataset; by default no prompt / response / file content / secrets are collected.
 
-## 安装
+## Installation
 
-作为 DSH 插件（推荐）：
+As a DSH plugin (recommended):
 
 ```bash
 dsh plugin --profile web add "github:duyanta123/dsh-telemetry#main"
 ```
 
-兼容性分层：JSONL 和纯 CLI 能力可独立运行在 Node.js >= 18；SQLite 后端要求 Node.js >= 22.5；作为 DSH 0.1.5-rc.2 插件验证统一使用 Node.js >= 22.19。运行 `npm run test:compat` 可执行隔离 profile 的 add、dump-config 和启动 smoke test。
+Compatibility tiers: JSONL and pure CLI capabilities run standalone on Node.js >= 18; the SQLite backend requires Node.js >= 22.5; as a DSH 0.1.5-rc.2 plugin it is verified with Node.js >= 22.19. Run `npm run test:compat` to execute an isolated-profile add, dump-config, and startup smoke test.
 
-或从 npm 安装（作为库或独立 CLI 使用）：
+Or install from npm (as a library or standalone CLI):
 
 ```bash
 npm install dsh-local-telemetry
 ```
 
-安装后重启 `dsh --profile web`，即可通过 `telemetry-runbook` 技能使用查询 CLI：
+After installation, restart `dsh --profile web`; the `telemetry-runbook` skill then guides the query CLI:
 
 ```bash
 node bin/telemetry.mjs --status
@@ -68,11 +70,11 @@ node bin/telemetry.mjs --trace <trace_id>
 node bin/telemetry.mjs --ui --port 47610
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 作为宿主集成代码使用
+### 1. Use as host integration code
 
-事件经显式适配器接入（当前推荐的唯一方式）：
+Events come in through an explicit adapter (currently the only recommended way):
 
 ```js
 import { createRecorder } from 'dsh-local-telemetry/telemetry';
@@ -80,7 +82,7 @@ import { createRecorder } from 'dsh-local-telemetry/telemetry';
 const recorder = createRecorder({
   config: {
     path: '~/.dsh/telemetry',
-    capture_metadata: 'safe', // 默认 none，不采集内容
+    capture_metadata: 'safe', // default 'none': no content collected
     hash_names: false,
     sample_rate: 1,
     errors_always_sample: true,
@@ -90,7 +92,7 @@ const recorder = createRecorder({
 });
 await recorder.start();
 
-// 记录一条事件（缺失的 id 和 timestamp 会自动补全）
+// Record an event (missing id and timestamp are filled in automatically)
 recorder.record({
   event: 'model.completed',
   trace_id: 'trace-001',
@@ -102,11 +104,11 @@ recorder.record({
   result: { status: 'success', finish_reason: 'stop' },
 });
 
-// 退出前 flush；失败不阻塞退出
+// Flush before exit; failures never block exit
 await recorder.close();
 ```
 
-### 2. 聚合读取（上层插件可引用）
+### 2. Aggregate reads (referenced by higher-level plugins)
 
 ```js
 import { openStore, aggregateEvents, buildTraceView } from 'dsh-local-telemetry/telemetry';
@@ -118,7 +120,7 @@ const summary = aggregateEvents(events, { catalog: null });
 console.log(`P95 latency: ${summary.requests.latency.p95}ms, Input tokens: ${summary.tokens.input}`);
 ```
 
-### 3. 作为 DSH 技能调用（CLI 由技能指引）
+### 3. Invoke via the DSH skill (the skill guides the CLI)
 
 ```bash
 node bin/telemetry.mjs --summary --since 1h --group-by model
@@ -127,48 +129,66 @@ node bin/telemetry.mjs --purge --before 30d
 node bin/telemetry.mjs --ui --port 47610
 ```
 
-## CLI 参数
+## CLI Options
 
-| 参数 | 默认 | 说明 |
+| Option | Default | Description |
 | --- | --- | --- |
-| `--store jsonl\|sqlite` | jsonl | 存储后端（sqlite 需 Node ≥22.5） |
-| `--path <dir>` | ~/.dsh/telemetry | 数据目录 |
-| `--config <file>` | - | 配置文件 |
-| `--since <duration\|ts>` | - | 时间窗起点（如 1h / 7d / ISO 时间戳） |
-| `--until <duration\|ts>` | - | 时间窗终点 |
-| `--profile <name>` | - | 按 profile 过滤 |
-| `--model <name>` | - | 按模型过滤 |
-| `--plugin <name>` | - | 按插件过滤 |
-| `--event <name\|prefix.*>` | - | 按事件过滤（如 model.*） |
-| `--group-by <key>` | - | 分组：model\|plugin\|tool\|profile\|day |
-| `--format text\|json\|markdown` | text | 输出格式（`--export` 未指定时按扩展名 `.json`/`.md` 推断） |
-| `--errors-only` | - | 只看错误与取消 |
-| `--slow-over-ms <N>` | - | 只看耗时 ≥ N 的请求 |
-| `--sample-rate <0..1>` | - | 采样率（录制侧配置） |
-| `--capture-metadata none\|safe` | - | metadata 采集（录制侧配置） |
-| `--purge --before <d>` | - | 保留期清理 |
+| `--store jsonl\|sqlite` | jsonl | Storage backend (sqlite requires Node ≥22.5) |
+| `--path <dir>` | ~/.dsh/telemetry | Data directory |
+| `--config <file>` | - | Config file |
+| `--since <duration\|ts>` | - | Window start (e.g. 1h / 7d / ISO timestamp) |
+| `--until <duration\|ts>` | - | Window end |
+| `--profile <name>` | - | Filter by profile |
+| `--model <name>` | - | Filter by model |
+| `--plugin <name>` | - | Filter by plugin |
+| `--event <name\|prefix.*>` | - | Filter by event (e.g. model.*) |
+| `--group-by <key>` | - | Group by: model\|plugin\|tool\|profile\|day |
+| `--format text\|json\|markdown` | text | Output format (`--export` infers from the `.json`/`.md` extension when unspecified) |
+| `--errors-only` | - | Show errors and cancels only |
+| `--slow-over-ms <N>` | - | Show requests taking ≥ N ms only |
+| `--sample-rate <0..1>` | - | Sampling rate (recorder-side config) |
+| `--capture-metadata none\|safe` | - | Metadata capture (recorder-side config) |
+| `--purge --before <d>` | - | Retention cleanup |
 
-## 隐私与安全
+## Privacy & Security
 
-- **默认不采集内容**：prompt、response、文件内容、命令参数、环境变量和密钥。
-- **脱敏策略**：敏感字段（Authorization、Cookie、token、password、api_key 等）整键丢弃；URL 凭据与 query token 脱敏；绝对路径可配置为 basename 或哈希。
-- **名称哈希**：工具、插件、模型名与 profile 可配置哈希化，稳定但不可直接还原。
-- **本地存储**：默认 `~/.dsh/telemetry`（JSONL 按日期分文件，SQLite 可选），不联网。
-- **只读 UI**：`--ui` 只绑定 127.0.0.1，禁止默认暴露到局域网。
+- **No content by default**: prompts, responses, file contents, command arguments, environment variables, and secrets are never collected.
+- **Sanitization**: sensitive keys (Authorization, Cookie, token, password, api_key, etc.) are dropped whole; URL credentials and query tokens are redacted; absolute paths can be reduced to basenames or hashes.
+- **Name hashing**: tool, plugin, model, and profile names can be hashed — stable but not directly reversible.
+- **Local storage**: defaults to `~/.dsh/telemetry` (JSONL files per day, optional SQLite); no network access.
+- **Read-only UI**: `--ui` binds to 127.0.0.1 only and never exposes to the LAN by default.
 
-## 版本规划
+## Troubleshooting
 
-### v0.1.0
+**`--store sqlite` fails to start?**
+The SQLite backend relies on the built-in `node:sqlite`, which requires Node >= 22.5. Check with `node --version`, or switch to the default JSONL backend (Node >= 18 suffices).
 
-- 本地 JSONL + 可选 SQLite（Node ≥22.5 内置 `node:sqlite`）
-- request/model/tool/plugin 基础事件
-- 启停配置、fail-open、`--status`、`--summary`、`--trace`、`--export`、`--purge`、`--ui`
-- 默认不采集内容
-- 采样、慢请求、错误保留策略
-- 成本目录、脱敏、隐私块、保留期清理
-- Markdown 报告
-- Trace/span 树与时间线视图
+**Web UI unreachable, or the port is taken?**
+`--ui` binds to `127.0.0.1` only (by design, never exposed to the LAN); access remote machines through an SSH tunnel. If the default port 47610 is taken, change it with `--port`.
 
-## 许可证
+**Cost shows as null in summaries?**
+Cost = token usage × price catalog. Without a catalog (`--config` or `prices.json` in the data directory), cost is recorded as missing (null, not 0) and can be recomputed for past events once configured; see [docs/schema.md](docs/schema.md) for field semantics.
+
+**`--status` says collection is not active?**
+On config parse failure the recorder degrades to disabled (fail-open, a safe default) — check the config file syntax and field names. JSONL events are written per-day under `~/.dsh/telemetry`; confirm today's file exists there.
+
+**Old sessions won't open after upgrading the DSH host to 0.1.5.x?**
+The Session format V3 migration is irreversible and is host behavior; back up session logs before upgrading the host (see the 0.1.2 entry in [CHANGELOG.md](CHANGELOG.md)).
+
+## Documentation
+
+- [docs/configuration.md](docs/configuration.md) — config file, field tables, sanitization rules, resource budgets, price catalog format
+- [docs/schema.md](docs/schema.md) — event contract schema version 1.0, 12 event types and field constraints
+- [examples/telemetry.json](examples/telemetry.json) / [examples/prices.json](examples/prices.json) — config samples
+- [CHANGELOG.md](CHANGELOG.md) — release notes
+- [DSH-TELEMETRY-开发计划.md](DSH-TELEMETRY-开发计划.md) — design and iteration history
+
+## Versions & Roadmap
+
+- **v0.1.0 (released)**: local JSONL + optional SQLite (built-in `node:sqlite`, Node ≥22.5), request/model/tool/plugin base events, start/stop config, fail-open, `--status`/`--summary`/`--trace`/`--export`/`--purge`/`--ui`, no content by default, sampling and retention policies, price catalog and sanitization, Markdown reports, trace/span tree and timeline views.
+- **v0.1.1 / v0.1.2 (released)**: `npm run test:compat` compatibility gate and three-tier compatibility notes; DSH host baseline migrated to `0.1.5-rc.2` (zero plugin code changes).
+- Future iterations follow [DSH-TELEMETRY-开发计划.md](DSH-TELEMETRY-开发计划.md).
+
+## License
 
 MIT
