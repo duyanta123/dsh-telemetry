@@ -453,7 +453,7 @@ export function aggregateEvents(events, { catalog = null, catalogPath = null, ge
   const requestsTotal = requests.length;
   return {
     schema_version: "1.0",
-    tool: { name: "dsh-local-telemetry", version: "0.1.1" },
+    tool: { name: "dsh-local-telemetry", version: "0.1.2" },
     generated_at: generated,
     window,
     data_completeness: {
