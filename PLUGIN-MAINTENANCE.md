@@ -8,7 +8,7 @@
 | 项 | 值 |
 |---|---|
 | 类型 | 运行遥测（JSONL / SQLite 双后端） |
-| 当前版本 | 0.1.2 |
+| 当前版本 | 0.2.0 |
 | 分发状态 | 正式项目（npm：`dsh-local-telemetry`；GitHub 仓库名 `dsh-telemetry`） |
 | 运行时 | 零构建 ESM；SQLite 后端依赖 Node 内置 `node:sqlite`（>=22.5） |
 | 核心模块 | `src/`（schema / recorder / sink / store / aggregate / report / server）+ `bin/telemetry.mjs` + `web/`（只读 UI） |

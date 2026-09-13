@@ -31,7 +31,7 @@
 ### GitHub
 
 1. push `main`，确认独立 JSONL/CLI 回归 CI 全绿（Node 18/20/22 × Windows/Ubuntu），并确认 Node 22.19 的 DSH compat job 通过。
-2. 打 tag `v0.x.y`（与 `package.json` version 一致，如当前 `v0.1.2`）并推送。
+2. 打 tag `v0.x.y`（与 `package.json` version 一致，如当前 `v0.2.0`）并推送；push 会触发 `publish.yml` 用 npm 可信发布（OIDC）自动发出，无需手动 `npm publish`。
 3. 给仓库添加 GitHub topic `dsh-plugin`（awesome 收录门槛之一）。
 
 ### npm

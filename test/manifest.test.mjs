@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 /**
  * 发布包一致性契约测试（计划 §16：README、schema、配置样例、CHANGELOG 和
@@ -68,11 +68,13 @@ test("files whitelist: core runtime modules are covered", () => {
   }
 });
 
-test("version consistency: package.json matches CHANGELOG release and report tool version", () => {
+test("version consistency: package.json matches CHANGELOG release and report tool version", async () => {
   const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
   assert.match(changelog, new RegExp(`## ${pkg.version.replace(/\./g, "\\.")}`), `CHANGELOG must document ${pkg.version}`);
-  const aggregate = readFileSync(join(root, "src", "aggregate.mjs"), "utf8");
-  assert.ok(aggregate.includes(`version: "${pkg.version}"`), "aggregate.mjs tool.version must match package version");
+  // 行为断言：聚合产物的 tool.version 必须来自 package.json（曾在 0.1.2 硬编码漂移过）
+  const { aggregateEvents } = await import(pathToFileURL(join(root, "src", "aggregate.mjs")).href);
+  const summary = aggregateEvents([], { catalog: null });
+  assert.equal(summary.tool.version, pkg.version, "aggregate summary tool.version must equal package version");
 });
 
 test("docs presence: README, schema doc, configuration doc, config sample, price sample", () => {
