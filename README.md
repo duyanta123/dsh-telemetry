@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4c1d95)](https://github.com/topics/dsh-plugin)
 [![CI](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml/badge.svg)](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/badge/npm-dsh--local--telemetry-blue)](https://www.npmjs.com/package/dsh-local-telemetry)
-[![version](https://img.shields.io/badge/version-0.1.2-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.2.0-green)](CHANGELOG.md)
 
 A local-first Harness telemetry plugin: records request, model, tool, and plugin lifecycle metrics (latency, tokens, cost, errors, cache) — no conversation content collected by default.
 
@@ -55,6 +55,19 @@ dsh plugin --profile web add "github:duyanta123/dsh-telemetry#main"
 
 Compatibility tiers: JSONL and pure CLI capabilities run standalone on Node.js >= 18; the SQLite backend requires Node.js >= 22.5; as a DSH 0.1.5-rc.2 plugin it is verified with Node.js >= 22.19. Run `npm run test:compat` to execute an isolated-profile add, dump-config, and startup smoke test.
 
+**Minimum host version**: automatic session capture is verified against DeepSeek Harness `0.1.5-rc.1+` (compat gate pins `0.1.5-rc.2`). On older hosts the plugin still installs and runs — it degrades to explicit-emit mode (skill + CLI + standalone UI) and prints a one-time notice; nothing else changes.
+
+**Fresh machine (DSH only, no other tooling required)**:
+
+```bash
+# 1. in any DSH profile
+dsh plugin --profile <name> add "github:duyanta123/dsh-telemetry#main"
+# 2. restart that profile (e.g. dsh --profile <name>) — capture starts automatically
+# 3. query or open the dashboard
+node <profile>/node_modules/dsh-local-telemetry/bin/telemetry.mjs --status
+node <profile>/node_modules/dsh-local-telemetry/bin/telemetry.mjs --ui --port 47610
+```
+
 Or install from npm (as a library or standalone CLI):
 
 ```bash
@@ -72,42 +85,52 @@ node bin/telemetry.mjs --ui --port 47610
 
 ## Quick Start
 
-### 1. Use as host integration code
+### 1. Automatic host integration (DeepSeek Harness 0.1.5-rc.1)
 
-Events come in through an explicit adapter (currently the only recommended way):
+When a DSH profile loads this plugin, `plugin/index.js` subscribes to the session event bus declared by `@deepseek-ai/dsh-session`: `session/created`, `session/event`, `session/flush`, `session/disposed`. That bus is post-commit and fire-and-forget, and the host contains observer failures — so capture can never affect the agent loop. No host service is registered and no request semantics change.
+
+Mapping (plan §3.1: one DSH turn = one request span):
+
+| DSH session event | Recorded event | Notes |
+| --- | --- | --- |
+| `turn/start` | `request.started` | trace = `<session>#t<turn>`, request_id = `turn-<n>` |
+| `step/start` | `model.requested` | one model call = one attempt span (child of the request) |
+| `assistant/chunk` (first per attempt) | `model.first_token` | authoritative TTFT source (append order = time order) |
+| `assistant/message` | `model.completed` | tokens from `usage`; model from `message.source` |
+| `assistant/attempt`, or `step/end` with no message | `model.failed` | `error.kind` = `no_message` / `no_completion` |
+| `llm/retry` | `model.failed` + `model.requested` | the retried attempt gets its own span, so attempts/retries stay correct |
+| `tool/call` / `tool/result` | `tool.started` / `tool.completed` | paired by `callId`; `isError` becomes `result.status = failed` |
+| `hook/invoked` / `hook/result` | `plugin.started` / `plugin.completed` | command hooks only (plan §4.4) |
+| `turn/end` | `request.completed` / `request.cancelled` | `reason.kind` maps to success / cancelled / failed |
+
+Never read (privacy §6): `tool/call.arguments`, `assistant/message.message.content`, `stream.texts`, and the `request/header` body (it carries the full system prompt). Only names, ids, counts, statuses, durations, and token totals are recorded.
+
+Why not the `sessionTelemetry` seam: `dsh-base` already mounts `@deepseek-ai/dsh-session-telemetry-otel`, and a duplicate service registration throws. That row also ships `mode: FEEDBACK_ONLY` with an on-demand coordinator — it captures only after explicit user feedback, so it cannot back always-on local telemetry. The `session-telemetry/record` waterfall is the redaction hook on that same on-demand path.
+
+Capabilities are reported honestly via `getCapabilities()`: `lifecycle_hooks: "partial"` — usage/cache/first-token are `confirmed`, plugin lifecycle is `partial` (command hooks only; in-process plugin init is not observable on the bus), and cost always comes from the versioned price catalog rather than the host.
+
+Configure it from the profile patch:
+
+```yaml
+- id: dsh-local-telemetry
+  name: dsh-local-telemetry
+  config:
+    telemetry:
+      store: sqlite
+      path: ~/.dsh/telemetry
+      sample_rate: 1
+```
+
+Non-DSH hosts, tests, and higher-level plugins can still drive the recorder explicitly. Note that `createRecorder` takes `{ config, sink, now }` — the plugin config goes under `config`:
 
 ```js
 import { createRecorder } from 'dsh-local-telemetry/telemetry';
 
-const recorder = createRecorder({
-  config: {
-    path: '~/.dsh/telemetry',
-    capture_metadata: 'safe', // default 'none': no content collected
-    hash_names: false,
-    sample_rate: 1,
-    errors_always_sample: true,
-    slow_request_ms: 10000,
-    retention_days: 7,
-  },
-});
-await recorder.start();
-
-// Record an event (missing id and timestamp are filled in automatically)
-recorder.record({
-  event: 'model.completed',
-  trace_id: 'trace-001',
-  span_id: 'span-003',
-  parent_id: 'span-001',
-  timestamp: '2026-08-23T12:00:00.000Z',
-  model: { provider: 'deepseek', name: 'deepseek-chat', request_type: 'chat' },
-  usage: { input_tokens: 4200, output_tokens: 860, cached_input_tokens: 0, reasoning_tokens: null },
-  result: { status: 'success', finish_reason: 'stop' },
-});
-
-// Flush before exit; failures never block exit
-await recorder.close();
+const recorder = createRecorder({ config: { path: '~/.dsh/telemetry' } });
+await recorder.start();   // async: the sqlite backend loads on demand
+recorder.record({ event: 'model.completed', trace_id: 'trace-001', span_id: 'span-003' });
+await recorder.close();   // flush; failures never block exit
 ```
-
 ### 2. Aggregate reads (referenced by higher-level plugins)
 
 ```js
@@ -187,6 +210,7 @@ The Session format V3 migration is irreversible and is host behavior; back up se
 
 - **v0.1.0 (released)**: local JSONL + optional SQLite (built-in `node:sqlite`, Node ≥22.5), request/model/tool/plugin base events, start/stop config, fail-open, `--status`/`--summary`/`--trace`/`--export`/`--purge`/`--ui`, no content by default, sampling and retention policies, price catalog and sanitization, Markdown reports, trace/span tree and timeline views.
 - **v0.1.1 / v0.1.2 (released)**: `npm run test:compat` compatibility gate and three-tier compatibility notes; DSH host baseline migrated to `0.1.5-rc.2` (zero plugin code changes).
+- **v0.2.0**: automatic host integration — subscribes to the DSH session event bus (per-session capture with `session.id`, requests/attempts/tools/hooks mapped from real session flow), retry-count semantics fixed to "re-issued after failure", sqlite→jsonl store fallback with effective-store reporting, and honest `not_started` handling instead of silent drops.
 - Future iterations follow [DSH-TELEMETRY-开发计划.md](DSH-TELEMETRY-开发计划.md).
 
 ## License

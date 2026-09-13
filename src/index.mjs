@@ -10,7 +10,8 @@ export { DEFAULT_CONFIG, BUDGET_LIMITS, resolveConfig, loadConfigFile, parseDura
 export { createRedactor, hashName, getOrCreateSalt, defaultPrivacy, SECRET_FIELDS } from "./privacy.mjs";
 export { createSampler, SAMPLING_STRATEGY } from "./sampling.mjs";
 export { createEventBusAdapter, createCapabilities, detectCapabilities } from "./adapter.mjs";
-export { createRecorder } from "./recorder.mjs";
+export { createRecorder, createSink } from "./recorder.mjs";
+export { createDshAdapter, createHostCapabilities, createSessionState, mapSessionEvent, normalizeErrorKind, MAPPED_HOST_EVENTS, HOST_BUS_EVENTS } from "./adapter-dsh.mjs";
 export { JsonlSink, utcDateOf } from "./sink-jsonl.mjs";
 export { createSqliteSink, sqliteAvailable, isSqliteSupported } from "./sink-sqlite.mjs";
 export { openStore, createJsonlStore, createSqliteStore, matchesFilters, isFailureEvent } from "./store.mjs";

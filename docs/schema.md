@@ -33,7 +33,7 @@
   "parent_id": "span-001",
   "timestamp": "2026-08-23T12:00:00.000Z",
   "duration_ms": 8420,
-  "session": { "profile": "web", "environment": "local" },
+  "session": { "id": "sess-a1b2c3d4e5f6", "profile": "web", "environment": "local" },
   "model": {
     "provider": "deepseek",
     "name": "deepseek-chat",
@@ -84,10 +84,13 @@
 
 ### session
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `profile` | string | Harness profile 名称（可配置哈希） |
-| `environment` | string | 环境（如 local / prod） |
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | string | 否 | 宿主会话 ID（来自 DSH session 总线）。与 `trace_id`/`span_id` 同为标识符，按设计不参与 `hash_names` 名称哈希。缺失时该事件无法归入具体会话 |
+| `profile` | string | 否 | Harness profile 名称（可配置哈希） |
+| `environment` | string | 否 | 环境（如 local / prod） |
+
+`id` 为 additive 可选字段（schema version 保持 1.0，向后兼容）：经 DSH 宿主适配器（`adapter-dsh.mjs`）接入时总会携带；显式 emit 接入时可省略。
 
 ### model
 

@@ -184,6 +184,30 @@ test("adapter: capabilities honestly report unconfirmed host hooks (Phase 0 验�
   assert.equal(bus.getCapabilities().lifecycle_hooks, "none");
 });
 
+test("recorder: store=sqlite 真正选到 sqlite 后端，而不是静默写 jsonl（回归）", async () => {
+  const dir = tmpDir();
+  const recorder = createRecorder({ config: { path: dir, store: "sqlite" } });
+  await recorder.start();
+  const status = recorder.status();
+  assert.equal(status.store_requested, "sqlite");
+
+  recorder.record(makeEvent({ trace_id: "trace-sqlite" }));
+  await recorder.close();
+  assert.ok(recorder.counters.recorded >= 1, "事件应被记录");
+
+  const names = readdirSync(dir);
+  if (status.store_fallback) {
+    // 运行时无 node:sqlite：允许降级，但必须如实报告，且确实写成 jsonl（不静默丢数据）
+    assert.equal(status.store_effective, "jsonl");
+    assert.ok(status.store_fallback_reason, "降级必须带原因");
+    assert.ok(names.some((name) => name.endsWith(".jsonl")), "降级后应落到 jsonl");
+  } else {
+    assert.equal(status.store_effective, "sqlite");
+    assert.ok(names.includes("telemetry.sqlite3"), "sqlite 后端应产出 telemetry.sqlite3");
+    assert.equal(names.some((name) => name.endsWith(".jsonl")), false, "sqlite 后端不应再产出 jsonl");
+  }
+});
+
 test("recorder: status reports enabled/store without leaking paths (§11)", async () => {
   const recorder = createRecorder({ config: { path: tmpDir() } });
   const status = recorder.status();

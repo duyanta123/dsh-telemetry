@@ -113,6 +113,38 @@ cost = (input_tokens / 1_000_000) * input_per_million
 
 若模型名、usage 或价格缺失，`cost` 为 `null` 并在摘要中标记缺失原因。
 
+## 宿主行配置（DSH profile patch）
+
+作为 DSH 插件加载时，配置不再走 `--config` 文件，而是写在 profile 补丁的行里；宿主会把该行的 `config` 原样传给插件入口，插件读取其中的 `telemetry` 子对象：
+
+```yaml
+- id: dsh-local-telemetry
+  name: dsh-local-telemetry
+  config:
+    telemetry:
+      store: sqlite
+      path: ~/.dsh/telemetry
+      sample_rate: 1
+      capture_metadata: none
+      hash_names: false
+      retention_days: 7
+      price_catalog: ~/.dsh/telemetry/prices.json
+```
+
+`telemetry` 下的字段与本文件「完整配置项」完全一致（同一套 `resolveConfig` 解析）；`config` 顶层另有两个可选字段：
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `profile` | string | null | 写入事件 `session.profile`，用于 `--profile` 过滤与分组 |
+| `environment` | string | local | 写入事件 `session.environment` |
+
+配置在**首次创建记录器时**生效：记录器是进程内单例（`getTelemetry()`），后续重复调用返回同一实例。如需等待 sink 就绪再派发事件，可 await `telemetryReady()`；在就绪之前 `record()` 会如实返回 `{ ok: false, reason: "not_started" }`，不会静默丢数据。
+
+```js
+import { getTelemetry, telemetryReady } from 'dsh-local-telemetry';
+await telemetryReady();
+const status = getTelemetry().status();   // { store, store_effective, store_fallback, counters, capabilities }
+```
 ## 环境变量
 
 不通过环境变量配置敏感信息（密钥不属于遥测配置）。

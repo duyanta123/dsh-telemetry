@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { createRecorder } from "../src/recorder.mjs";
+import { createDshAdapter } from "../src/adapter-dsh.mjs";
 
 export const name = "dsh-local-telemetry";
 export const inject = ["skills"];
@@ -23,13 +24,25 @@ const skillsDir = join(rootDir, "skills");
 const requireOptional = createRequire(import.meta.url);
 
 let sharedRecorder = null;
+let sharedStart = null;
 
 /** 供宿主集成代码获取共享记录器（惰性创建；配置 enabled=false 时仍可创建，由 record() 自行短路）。 */
 export function getTelemetry(config) {
   if (!sharedRecorder) {
-    sharedRecorder = createRecorder(config ?? {});
+    // 注意：createRecorder 的形参是 { config, sink, now }，把配置对象直接传进去会被当成 opts，
+    // 导致宿主配置（store/path/sample_rate/…）被静默忽略——这里必须包一层 config。
+    sharedRecorder = createRecorder({ config: config ?? undefined });
+    sharedStart = Promise.resolve(sharedRecorder.start?.()).catch(() => {});
   }
   return sharedRecorder;
+}
+
+/**
+ * 记录器就绪 promise（sink 已建好、可以落盘）。
+ * sink 就绪之前的 record() 会如实返回 { ok:false, reason:"not_started" }，不会静默丢数据。
+ */
+export function telemetryReady() {
+  return sharedStart ?? Promise.resolve();
 }
 
 export function apply(ctx, config = {}) {
@@ -56,9 +69,29 @@ export function apply(ctx, config = {}) {
   let recorder = null;
   try {
     recorder = getTelemetry(config?.telemetry);
-    void recorder.start?.();
+    void telemetryReady();
   } catch {
     recorder = null; // fail-open：遥测初始化失败不影响 Harness
+  }
+
+  // 宿主接入：订阅 dsh-session 公开的 session 事件总线，把真实会话流量喂给记录器。
+  // 宿主不提供该总线（旧版本/非 DSH 宿主）时降级为「显式 emit 模式」，只提示一次。
+  let adapter = null;
+  if (recorder) {
+    try {
+      adapter = createDshAdapter(recorder, {
+        profile: config?.profile ?? null,
+        environment: config?.environment ?? "local",
+      });
+      adapter.attach(ctx);
+    } catch (error) {
+      adapter = null;
+      console.warn?.(
+        "[dsh-local-telemetry] host session bus unavailable (" +
+          (error?.message ?? String(error)) +
+          "); explicit emit API remains usable"
+      );
+    }
   }
 
   ctx.effect(
@@ -66,6 +99,11 @@ export function apply(ctx, config = {}) {
       yield async () => {
         try {
           if (provider && typeof provider.dispose === "function") await provider.dispose();
+        } catch {
+          /* ignore */
+        }
+        try {
+          if (adapter) adapter.detach();
         } catch {
           /* ignore */
         }
@@ -79,5 +117,5 @@ export function apply(ctx, config = {}) {
     "dsh-local-telemetry skill provider + telemetry flush"
   );
 
-  return { name, skillsRegistered };
+  return { name, skillsRegistered, hostAdapter: adapter ? adapter.snapshot() : null };
 }

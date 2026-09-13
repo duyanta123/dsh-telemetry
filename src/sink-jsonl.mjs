@@ -48,6 +48,7 @@ export class JsonlSink {
     now = () => Date.now(),
   } = {}) {
     if (!dir || typeof dir !== "string") throw new TypeError("JsonlSink requires dir");
+    this.kind = "jsonl";
     this.dir = dir;
     this.maxFileBytes = Math.max(1024, maxFileBytes);
     this.batchCount = Math.max(1, Math.round(batchCount));

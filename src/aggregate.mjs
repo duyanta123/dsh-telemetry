@@ -6,7 +6,16 @@
  * （nearest-rank）随摘要输出，保证可由原始事件重算（Phase 2 验收）。
  */
 
+import { createRequire } from "node:module";
 import { computeCost, sumCosts } from "./cost.mjs";
+
+/** 自报版本号从 package.json 读取（曾因硬编码 0.1.2 漂移过一次）；读取失败按开发版标注。 */
+let SELF_VERSION = "0.0.0-dev";
+try {
+  SELF_VERSION = createRequire(import.meta.url)("../package.json").version;
+} catch {
+  /* 打包环境缺 package.json 时保持 dev 标注 */
+}
 
 /** nearest-rank 分位数：sorted 已升序；n=0 → null。方法固定并写入文档。 */
 export function percentile(sorted, p) {
@@ -35,6 +44,40 @@ function eventTs(event) {
  * 兜底在同 trace 内与「最近的未闭合同名 started」配对（宿主不保证 span 传播时）。
  * 返回 { pairs: [{start, end}], unmatched: [started...] }
  */
+/**
+ * 重试次数 = 同一 trace 内、在「某次 attempt 已失败」之后才开始的 attempt 数量。
+ *
+ * 不能再用 attempts-1：一个请求内正常的多次模型调用（DSH 的 step、工具往返后的
+ * 续跑）不是重试，只有失败后重新发起才是。判定完全基于事件时间与失败事实，
+ * 与宿主 llm/retry 映射出的 (model.failed -> model.requested) 序列一致。
+ * @param {object[]} traceEvents 同一 trace 的事件
+ * @returns {number}
+ */
+export function countRetries(traceEvents) {
+  const failures = [];
+  for (const event of traceEvents) {
+    const failed = event.event === "model.failed"
+      || (event.event === "model.completed" && isFailureStatus(event.result?.status));
+    if (!failed) continue;
+    const at = eventTs(event);
+    if (at !== null) failures.push({ at, span: event.span_id });
+  }
+  if (failures.length === 0) return 0;
+  let retries = 0;
+  for (const failure of failures) {
+    // 重发的 attempt 与失败的 attempt 是**不同的 span**，时间上不早于失败时刻
+    // （映射同一时刻的 llm/retry 会产出相同时间戳，所以不能用严格大于）
+    const retried = traceEvents.some((event) => {
+      if (event.event !== "model.requested") return false;
+      if (event.span_id === failure.span) return false;
+      const at = eventTs(event);
+      return at !== null && at >= failure.at;
+    });
+    if (retried) retries += 1;
+  }
+  return retries;
+}
+
 export function pairSpans(events, { startedName, endNames, nameOf }) {
   const open = new Map(); // span_id -> start event
   const openByNameTrace = new Map(); // `${trace}\u0000${name}` -> [start events]
@@ -147,7 +190,7 @@ export function aggregateEvents(events, { catalog = null, catalogPath = null, ge
 
     const attemptEvents = traceEvents.filter((e) => e.event === "model.requested");
     const attempts = attemptEvents.length;
-    const retries = attempts > 1 ? attempts - 1 : 0;
+    const retries = countRetries(traceEvents);
     let fallbacks = 0;
     for (let i = 1; i < attemptEvents.length; i += 1) {
       const prev = attemptEvents[i - 1]?.model?.name;
@@ -268,7 +311,23 @@ export function aggregateEvents(events, { catalog = null, catalogPath = null, ge
     for (const [key, count] of perModel) {
       if (count <= 1) continue;
       const bucket = modelMap.get(`${key}\u0000${traceEvents.find((e) => e.event === "model.requested")?.model?.request_type ?? "chat"}`);
-      if (bucket) bucket.retries += count - 1;
+      if (bucket) {
+        // 每个失败最多贡献一次重试，归因到「失败后重新发起」所用模型
+        const requestedEvents = [];
+        const failureTimes = [];
+        for (const event of traceEvents) {
+          const at = eventTs(event);
+          if (at === null) continue;
+          if (event.event === "model.requested") requestedEvents.push({ at, span: event.span_id, event });
+          else if (event.event === "model.failed" || (event.event === "model.completed" && isFailureStatus(event.result?.status))) failureTimes.push({ at, span: event.span_id });
+        }
+        for (const failure of failureTimes) {
+          const next = requestedEvents.find((r) => r.span !== failure.span && r.at >= failure.at);
+          if (!next) continue;
+          const nextKey = (next.event.model?.provider ?? "") + String.fromCharCode(0) + (next.event.model?.name ?? "");
+          if (nextKey === key) bucket.retries += 1;
+        }
+      }
     }
   }
 
@@ -453,7 +512,7 @@ export function aggregateEvents(events, { catalog = null, catalogPath = null, ge
   const requestsTotal = requests.length;
   return {
     schema_version: "1.0",
-    tool: { name: "dsh-local-telemetry", version: "0.1.2" },
+    tool: { name: "dsh-local-telemetry", version: SELF_VERSION },
     generated_at: generated,
     window,
     data_completeness: {
@@ -603,7 +662,7 @@ function aggregateRequestRows(events) {
       model: lastModel,
       provider,
       model_attempts: attempts.length,
-      retries: attempts.length > 1 ? attempts.length - 1 : 0,
+      retries: countRetries(traceEvents),
       tool_calls: toolCalls,
       tokens: { input, output, cached },
     });

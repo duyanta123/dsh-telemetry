@@ -18,9 +18,54 @@ import { SCHEMA_VERSION, newId, nowIsoUtc, validateEvent } from "./schema.mjs";
 import { JsonlSink } from "./sink-jsonl.mjs";
 
 /**
+ * 按已解析配置构造 sink：config.store 决定后端（jsonl | sqlite）。
+ *
+ * fail-open：sqlite 不可用（Node < 22.5、node:sqlite 被禁用等）时自动降级为
+ * jsonl 并带回降级原因，绝不因后端问题阻塞业务（计划 §6.3）。
+ *
+ * @param {object} config resolveConfig() 产物
+ * @param {{ now?: () => number }} [opts]
+ * @returns {Promise<{ sink: object, kind: "jsonl"|"sqlite", fallback: boolean, reason: string|null }>}
+ */
+export async function createSink(config, { now = () => Date.now() } = {}) {
+  const shared = {
+    dir: resolveDataPath(config.path),
+    maxFileBytes: config.max_file_mb * 1024 * 1024,
+    batchCount: config.batch_size,
+    flushIntervalMs: config.flush_interval_ms,
+    maxQueue: config.max_queue_events,
+    retentionDays: config.retention_days,
+    now,
+  };
+  if (config.store === "sqlite") {
+    try {
+      const mod = await import("./sink-sqlite.mjs");
+      const availability = await mod.sqliteAvailable();
+      if (availability.available) {
+        return { sink: mod.createSqliteSink(shared), kind: "sqlite", fallback: false, reason: null };
+      }
+      return {
+        sink: new JsonlSink(shared),
+        kind: "jsonl",
+        fallback: true,
+        reason: availability.reason ?? "sqlite unavailable",
+      };
+    } catch (error) {
+      return {
+        sink: new JsonlSink(shared),
+        kind: "jsonl",
+        fallback: true,
+        reason: "sqlite init failed (" + (error?.message ?? String(error)) + ")",
+      };
+    }
+  }
+  return { sink: new JsonlSink(shared), kind: "jsonl", fallback: false, reason: null };
+}
+
+/**
  * @param {object} opts
  * @param {object|undefined} [opts.config] 部分配置（与默认合并）
- * @param {object} [opts.sink] 已构造的 sink（缺省按 config.store 创建 JsonlSink）
+ * @param {object} [opts.sink] 已构造的 sink（缺省按 config.store 创建对应后端）
  * @param {() => number} [opts.now] 可注入时钟
  */
 export function createRecorder(opts = {}) {
@@ -31,9 +76,12 @@ export function createRecorder(opts = {}) {
   const recorder = {
     config,
     capabilities: createCapabilities(),
-    counters: { recorded: 0, sampled_out: 0, invalid: 0, errors: 0 },
+    counters: { recorded: 0, sampled_out: 0, invalid: 0, not_ready: 0, errors: 0 },
     adapter: null,
     sink: opts.sink ?? null,
+    _sinkKind: opts.sink?.kind ?? null,
+    _sinkFallback: false,
+    _sinkFallbackReason: null,
     _salt: null,
     _redactor: null,
     _sampler: null,
@@ -74,15 +122,17 @@ export function createRecorder(opts = {}) {
     if (recorder._started) return;
     recorder._started = true;
     if (!recorder.sink) {
-      recorder.sink = new JsonlSink({
-        dir: resolveDataPath(config.path),
-        maxFileBytes: config.max_file_mb * 1024 * 1024,
-        batchCount: config.batch_size,
-        flushIntervalMs: config.flush_interval_ms,
-        maxQueue: config.max_queue_events,
-        retentionDays: config.retention_days,
-        now,
-      });
+      const built = await createSink(config, { now });
+      recorder.sink = built.sink;
+      recorder._sinkKind = built.kind;
+      recorder._sinkFallback = built.fallback;
+      recorder._sinkFallbackReason = built.reason;
+      if (built.fallback) {
+        console.warn?.(
+          "[dsh-local-telemetry] store " + JSON.stringify(config.store) +
+            " unavailable, falling back to " + JSON.stringify(built.kind) + ": " + built.reason
+        );
+      }
     }
     if (typeof recorder.sink.start === "function") await recorder.sink.start();
   }
@@ -99,6 +149,12 @@ export function createRecorder(opts = {}) {
       if (!prepared.ok) {
         recorder.counters.invalid += 1;
         return prepared;
+      }
+      // start() 是异步的（sqlite 后端需要动态加载）：sink 未就绪时必须如实拒绝，
+      // 不能「计数为已记录、实际没落盘」——那是最难发现的一类静默丢数据。
+      if (!recorder.sink) {
+        recorder.counters.not_ready += 1;
+        return { ok: false, reason: "not_started" };
       }
       const sampler = ensureSampler();
       const decision = sampler.decide(prepared.event, { durationMs: prepared.event.duration_ms ?? null });
@@ -184,9 +240,16 @@ export function createRecorder(opts = {}) {
   }
 
   function status() {
+    // 报告实际生效的后端，而不是只回显配置（sink 尚未构建时退回配置值）
+    const effectiveStore = recorder._sinkKind ?? recorder.sink?.kind ?? config.store;
     return {
       enabled: config.enabled,
-      store: config.store,
+      store: effectiveStore,
+      store_requested: config.store,
+      store_effective: effectiveStore,
+      store_fallback: recorder._sinkFallback,
+      store_fallback_reason: recorder._sinkFallbackReason,
+      started: recorder._started,
       counters: { ...recorder.counters },
       capabilities: recorder.capabilities,
       config_summary: {

@@ -93,6 +93,7 @@ export function createSqliteSink({
 } = {}) {
   if (!dir || typeof dir !== "string") throw new TypeError("createSqliteSink requires dir");
   const sink = {
+    kind: "sqlite",
     dir,
     maxFileBytes,
     batchCount: Math.max(1, Math.round(batchCount)),

@@ -6,7 +6,7 @@
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4c1d95)](https://github.com/topics/dsh-plugin)
 [![CI](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml/badge.svg)](https://github.com/duyanta123/dsh-telemetry/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/badge/npm-dsh--local--telemetry-blue)](https://www.npmjs.com/package/dsh-local-telemetry)
-[![version](https://img.shields.io/badge/version-0.1.2-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.2.0-green)](CHANGELOG.md)
 
 本地优先的 Harness 运行遥测插件：记录请求、模型、工具与插件生命周期指标（延迟、Token、成本、错误、缓存），默认不采集内容。
 
@@ -55,6 +55,19 @@ dsh plugin --profile web add "github:duyanta123/dsh-telemetry#main"
 
 兼容性分层：JSONL 和纯 CLI 能力可独立运行在 Node.js >= 18；SQLite 后端要求 Node.js >= 22.5；作为 DSH 0.1.5-rc.2 插件验证统一使用 Node.js >= 22.19。运行 `npm run test:compat` 可执行隔离 profile 的 add、dump-config 和启动 smoke test。
 
+**最低宿主版本**：会话自动采集针对 DeepSeek Harness `0.1.5-rc.1+` 实测（兼容门禁钉 `0.1.5-rc.2`）。更旧的宿主上插件仍可安装运行——自动降级为显式接入模式（技能 + CLI + 独立 UI），只留一次性提示，其余功能不受影响。
+
+**新机器快速开始（只需要 DSH）**：
+
+```bash
+# 1. 在任意 DSH profile 里安装
+dsh plugin --profile <name> add "github:duyanta123/dsh-telemetry#main"
+# 2. 重启该 profile（如 dsh --profile <name>）——采集自动开始
+# 3. 查询或打开仪表盘
+node ~/.dsh/profiles/<name>/node_modules/dsh-local-telemetry/bin/telemetry.mjs --status
+node ~/.dsh/profiles/<name>/node_modules/dsh-local-telemetry/bin/telemetry.mjs --ui --port 47610
+```
+
 或从 npm 安装（作为库或独立 CLI 使用）：
 
 ```bash
@@ -72,42 +85,59 @@ node bin/telemetry.mjs --ui --port 47610
 
 ## 快速开始
 
-### 1. 作为宿主集成代码使用
+### 1. 宿主自动接入（DeepSeek Harness 0.1.5-rc.1）
 
-事件经显式适配器接入（当前推荐的唯一方式）：
+DSH profile 加载本插件后，`plugin/index.js` 会订阅 `@deepseek-ai/dsh-session` 公开声明的会话事件总线：`session/created`、`session/event`、`session/flush`、`session/disposed`。该总线是 **post-commit、fire-and-forget** 的，且宿主会包含（contain）观察者异常——因此采集永远不会影响到 agent loop。本插件不注册任何服务，也不改变请求语义。
+
+映射口径（计划 §3.1：一个 DSH turn = 一个 request span）：
+
+| DSH 会话事件 | 记录事件 | 说明 |
+| --- | --- | --- |
+| `turn/start` | `request.started` | trace = `<session>#t<turn>`，request_id = `turn-<n>` |
+| `step/start` | `model.requested` | 一次模型调用 = 一个 attempt span（request 的子 span） |
+| `assistant/chunk`（每个 attempt 首条） | `model.first_token` | TTFT 权威口径（append 顺序即时间顺序） |
+| `assistant/message` | `model.completed` | token 取自 `usage`；模型归属取自 `message.source` |
+| `assistant/attempt`，或无消息的 `step/end` | `model.failed` | `error.kind` = `no_message` / `no_completion` |
+| `llm/retry` | `model.failed` + `model.requested` | 重发的 attempt 单独成 span，attempts/重试口径才正确 |
+| `tool/call` / `tool/result` | `tool.started` / `tool.completed` | 按 `callId` 配对；`isError` → `result.status = failed` |
+| `hook/invoked` / `hook/result` | `plugin.started` / `plugin.completed` | 仅命令 hook（计划 §4.4） |
+| `turn/end` | `request.completed` / `request.cancelled` | `reason.kind` 映射为 success / cancelled / failed |
+
+**永不读取**（隐私 §6）：`tool/call.arguments`、`assistant/message.message.content`、`stream.texts`，以及 `request/header` 的 body（内含完整 system prompt）。只记录名称、ID、计数、状态、耗时和 token 总量。
+
+为什么不走 `sessionTelemetry` seam：`dsh-base` 已经挂了 `@deepseek-ai/dsh-session-telemetry-otel`，**重复注册 service 会抛错**；而且那一行是 `mode: FEEDBACK_ONLY` + on-demand capture，只有用户显式 feedback 才采集，无法支撑「本地常开」遥测。`session-telemetry/record` 是同一按需路径上的脱敏 waterfall，不适合当采集通道。
+
+能力声明如实反映实情（`getCapabilities()`）：`lifecycle_hooks: "partial"` —— usage/cache/first-token 为 `confirmed`，插件生命周期为 `partial`（只能观察命令 hook；进程内插件初始化不在总线上），成本始终来自版本化价格目录而非宿主。
+
+在 profile 补丁里配置：
+
+```yaml
+- id: dsh-local-telemetry
+  name: dsh-local-telemetry
+  config:
+    telemetry:
+      store: sqlite
+      path: ~/.dsh/telemetry
+      sample_rate: 1
+```
+
+非 DSH 宿主、测试与上层插件仍可显式驱动记录器。注意 `createRecorder` 的形参是 `{ config, sink, now }`，插件配置要放在 `config` 下（直接传配置对象会被当成 opts 而静默丢失）：
 
 ```js
 import { createRecorder } from 'dsh-local-telemetry/telemetry';
 
-const recorder = createRecorder({
-  config: {
-    path: '~/.dsh/telemetry',
-    capture_metadata: 'safe', // 默认 none，不采集内容
-    hash_names: false,
-    sample_rate: 1,
-    errors_always_sample: true,
-    slow_request_ms: 10000,
-    retention_days: 7,
-  },
-});
-await recorder.start();
-
-// 记录一条事件（缺失的 id 和 timestamp 会自动补全）
-recorder.record({
-  event: 'model.completed',
-  trace_id: 'trace-001',
-  span_id: 'span-003',
-  parent_id: 'span-001',
-  timestamp: '2026-08-23T12:00:00.000Z',
-  model: { provider: 'deepseek', name: 'deepseek-chat', request_type: 'chat' },
-  usage: { input_tokens: 4200, output_tokens: 860, cached_input_tokens: 0, reasoning_tokens: null },
-  result: { status: 'success', finish_reason: 'stop' },
-});
-
-// 退出前 flush；失败不阻塞退出
-await recorder.close();
+const recorder = createRecorder({ config: { path: '~/.dsh/telemetry' } });
+await recorder.start();   // 异步：sqlite 后端按需加载
+recorder.record({ event: 'model.completed', trace_id: 'trace-001', span_id: 'span-003' });
+await recorder.close();   // flush；失败不阻塞退出
 ```
 
+宿主接入健康状况可随时查询（`apply()` 返回值里也有）：
+
+```js
+import { createDshAdapter } from 'dsh-local-telemetry/telemetry';
+adapter.snapshot();   // { attached, received, mapped, recorded, ignored, invalid, dropped_sink, errors, sessions, unmapped_types }
+```
 ### 2. 聚合读取（上层插件可引用）
 
 ```js
@@ -187,6 +217,7 @@ Session format V3 迁移不可逆，属宿主行为；升级宿主前请先备�
 
 - **v0.1.0（已发布）**：本地 JSONL + 可选 SQLite（Node ≥22.5 内置 `node:sqlite`）、request/model/tool/plugin 基础事件、启停配置、fail-open、`--status`/`--summary`/`--trace`/`--export`/`--purge`/`--ui`、默认不采集内容、采样与保留策略、成本目录与脱敏、Markdown 报告、Trace/span 树与时间线视图。
 - **v0.1.1 / v0.1.2（已发布）**：`npm run test:compat` 兼容门禁与三层兼容性说明；DSH 宿主基线迁移至 `0.1.5-rc.2`（插件代码零改动）。
+- **v0.2.0**：宿主自动接入——订阅 DSH session 事件总线，按会话（携带 `session.id`）把真实流量映射为 request/attempt/tool/hook 事件；重试口径修正为「失败后重发才算重试」；sqlite 不可用自动回退 jsonl 并如实报告生效后端；sink 未就绪不再静默丢数据。
 - 后续迭代以 [DSH-TELEMETRY-开发计划.md](DSH-TELEMETRY-开发计划.md) 为准。
 
 ## 许可证
