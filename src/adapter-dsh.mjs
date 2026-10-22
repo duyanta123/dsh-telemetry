@@ -488,8 +488,11 @@ function onToolResult(state, data, time) {
   const known = state.tools.get(callId) ?? null;
   state.tools.delete(callId);
   const block = Array.isArray(message.content) && message.content.length > 0 ? message.content[0] : null;
-  const isError = Boolean(block && typeof block === "object" && block.isError === true);
   const detail = data.error && typeof data.error === "object" ? data.error : null;
+  // The host reports tool failures on message.isError and/or data.error.
+  // Reading only content[0].isError made every failed tool call look successful.
+  const blockFailed = Boolean(block && typeof block === "object" && block.isError === true);
+  const isError = Boolean(blockFailed || message.isError === true || detail !== null);
   const fields = {
     event: "tool.completed",
     trace_id: t.traceId,
