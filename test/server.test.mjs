@@ -100,9 +100,13 @@ test("server: /api/status marks localhost_only and price catalog", async () => {
 
 test("server: /api/report.md renders the markdown report", async () => {
   await withServer(fixtureData, async (base) => {
-    const md = await (await fetch(`${base}/api/report.md?since=24h`)).text();
+    const since = encodeURIComponent("2026-08-23T00:00:00.000Z");
+    const until = encodeURIComponent("2026-08-23T23:59:59.999Z");
+    const md = await (await fetch(`${base}/api/report.md?since=${since}&until=${until}`)).text();
     assert.ok(md.includes("# Harness 遥测报告"));
     assert.ok(md.includes("## 5. 模型比较"));
+    assert.ok(md.includes("请求总数 3"), md);
+    assert.ok(md.includes("deepseek-chat"));
   });
 });
 

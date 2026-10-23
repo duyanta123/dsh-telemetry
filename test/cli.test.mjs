@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtempSync, mkdirSync, existsSync, readFileSync, readdirSync, copyFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,15 +11,6 @@ const exec = promisify(execFile);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = join(root, "bin", "telemetry.mjs");
 const fixtureData = join(root, "test", "fixtures", "telemetry-data");
-
-// cpSync 递归复制在 Windows 非 ASCII 路径下触发 Node 崩溃（0xC0000409），改用逐条目复制
-function copyDir(src, dest) {
-  mkdirSync(dest, { recursive: true });
-  for (const entry of readdirSync(src, { withFileTypes: true })) {
-    if (entry.isDirectory()) copyDir(join(src, entry.name), join(dest, entry.name));
-    else copyFileSync(join(src, entry.name), join(dest, entry.name));
-  }
-}
 
 async function runCli(args) {
   try {
@@ -155,17 +146,22 @@ test("cli: --export writes json and markdown files", async () => {
 });
 
 test("cli: --purge --before removes old files only", async () => {
+  const DAY = 86_400_000;
+  const now = Date.now();
+  const utcDate = (ms) => new Date(ms).toISOString().slice(0, 10);
   const dir = mkdtempSync(join(tmpdir(), "dsh-tel-purge-cli-"));
   const dataDir = join(dir, "data");
   mkdirSync(dataDir);
-  copyDir(fixtureData, dataDir);
-  const oldFile = join(dataDir, "2026-07-01.jsonl");
-  await import("node:fs/promises").then((fs) => fs.writeFile(oldFile, "{}\n", "utf8"));
+  const keepFile = join(dataDir, `${utcDate(now - 10 * DAY)}.jsonl`);
+  const oldFile = join(dataDir, `${utcDate(now - 60 * DAY)}.jsonl`);
+  writeFileSync(keepFile, "{}\n", "utf8");
+  writeFileSync(oldFile, "{}\n", "utf8");
   const { code, stdout } = await runCli(["--purge", "--before", "30d", "--path", dataDir, "--json"]);
   assert.equal(code, 0, stdout);
   const result = JSON.parse(stdout);
   assert.equal(result.removed_files, 1);
-  assert.ok(existsSync(join(dataDir, "2026-08-23.jsonl")));
+  assert.equal(existsSync(oldFile), false);
+  assert.ok(existsSync(keepFile));
 });
 
 test("cli: --purge without --before is a usage error", async () => {
