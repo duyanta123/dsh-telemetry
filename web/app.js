@@ -110,7 +110,7 @@ function renderTrend(rows) {
       tip.style.display = "block";
       tip.style.left = `${ev.clientX + 12}px`;
       tip.style.top = `${ev.clientY + 12}px`;
-      tip.innerHTML = `<div class="t">${esc(d.group)}</div>requests <b>${d.requests}</b> · err <b>${d.failed}</b><br>tokens in <b>${fmtInt(d.input_tokens)}</b> / out <b>${fmtInt(d.output_tokens)}</b><br>cost <b>${fmtCost(d.cost)}</b> · p95 <b>${fmtMs(d.p95_ms)}</b>`;
+      tip.innerHTML = `<div class="t">${esc(d.group)}</div>requests <b>${d.requests}</b> · err <b>${d.failed}</b> · calls <b>${d.calls ?? 0}</b><br>tokens in <b>${fmtInt(d.input_tokens)}</b> / out <b>${fmtInt(d.output_tokens)}</b><br>cost <b>${fmtCost(d.cost)}</b> · p95 <b>${fmtMs(d.p95_ms)}</b>`;
     });
     el.addEventListener("mouseleave", () => { tip.style.display = "none"; });
   });

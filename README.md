@@ -165,7 +165,7 @@ node bin/telemetry.mjs --ui --port 47610
 | `--model <name>` | - | Filter by model |
 | `--plugin <name>` | - | Filter by plugin |
 | `--event <name\|prefix.*>` | - | Filter by event (e.g. model.*) |
-| `--group-by <key>` | - | Group by: model\|plugin\|tool\|profile\|day |
+| `--group-by <key>` | - | Group by: model\|plugin\|tool\|profile\|day. `tool` rows report `calls` (the tool.completed count) instead of `requests`, which stays 0 because a tool call is not a request |
 | `--format text\|json\|markdown` | text | Output format (`--export` infers from the `.json`/`.md` extension when unspecified) |
 | `--errors-only` | - | Show errors and cancels only |
 | `--slow-over-ms <N>` | - | Show requests taking ≥ N ms only |

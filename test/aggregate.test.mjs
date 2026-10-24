@@ -175,6 +175,27 @@ test("aggregate: groupBy produces per-group rows", async () => {
   assert.equal(aggregateGrouped(events, { groupBy: "nope" }), null);
 });
 
+test("aggregate: groupBy=tool 的指标来自 tool.completed，calls 不抄请求口径", () => {
+  const events = [
+    { schema_version: "1.0", event: "tool.started", event_id: "g1", trace_id: "t-tool", span_id: "tool:a", timestamp: "2026-08-23T12:00:00.000Z", tool: { name: "read_file" } },
+    { schema_version: "1.0", event: "tool.completed", event_id: "g2", trace_id: "t-tool", span_id: "tool:a", timestamp: "2026-08-23T12:00:00.100Z", duration_ms: 100, tool: { name: "read_file" }, result: { status: "success" } },
+    // 没有 tool.started 的 completed（started 落在窗口外）也必须计入
+    { schema_version: "1.0", event: "tool.completed", event_id: "g3", trace_id: "t-tool", span_id: "tool:b", timestamp: "2026-08-23T12:00:00.300Z", duration_ms: 300, tool: { name: "read_file" }, result: { status: "failed" }, error: { kind: "fserror" } },
+  ];
+  const [row] = aggregateGrouped(events, { groupBy: "tool" });
+  assert.equal(row.group, "read_file");
+  assert.equal(row.requests, 0, "工具调用不是请求");
+  assert.equal(row.calls, 2);
+  assert.equal(row.calls, row.success + row.failed + row.cancelled);
+  assert.equal(row.success, 1);
+  assert.equal(row.failed, 1);
+  assert.equal(row.cancelled, 0);
+  assert.equal(row.p95_ms, 300, "p95 取工具耗时，不是请求耗时");
+  assert.equal(row.events, 3);
+  // 非 tool 分组同样带 calls（= 组内 tool.completed 数）
+  assert.equal(aggregateGrouped(events, { groupBy: "day" })[0].calls, 2);
+});
+
 test("aggregate: slowTraceIds finds requests over threshold", async () => {
   const events = await loadFixtureEvents();
   assert.deepEqual([...slowTraceIds(events, 8500)].sort(), ["trace-002"]); // 8100 < 8500 < 9100

@@ -56,16 +56,17 @@ export function renderTextSummary(summary, { dropped = null, store = "jsonl" } =
   return lines.join("\n");
 }
 
-/** --group-by 文本表。 */
+/** --group-by 文本表。tool 分组里一次调用不是一次请求：req 列让位给 calls。 */
 export function renderGroupedText(rows, groupBy) {
+  const countLabel = groupBy === "tool" ? "calls" : "req";
   const lines = [`Grouped by ${groupBy}:`];
-  lines.push(`${"group".padEnd(28)} ${"events".padStart(7)} ${"req".padStart(6)} ${"ok".padStart(6)} ${"err".padStart(5)} ${"p95".padStart(10)} ${"in_tok".padStart(10)} ${"out_tok".padStart(10)} ${"cost".padStart(12)}`);
+  lines.push(`${"group".padEnd(28)} ${"events".padStart(7)} ${countLabel.padStart(6)} ${"ok".padStart(6)} ${"err".padStart(5)} ${"p95".padStart(10)} ${"in_tok".padStart(10)} ${"out_tok".padStart(10)} ${"cost".padStart(12)}`);
   for (const row of rows) {
     lines.push(
       [
         String(row.group).slice(0, 27).padEnd(28),
         String(row.events).padStart(7),
-        String(row.requests).padStart(6),
+        String(groupBy === "tool" ? row.calls : row.requests).padStart(6),
         String(row.success).padStart(6),
         String(row.failed).padStart(5),
         fmtMs(row.p95_ms).padStart(10),
