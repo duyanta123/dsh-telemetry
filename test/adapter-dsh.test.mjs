@@ -115,6 +115,39 @@ test("adapter-dsh: 工具失败 → status=failed + error.kind，且不臆造缺
   assert.deepEqual(done.tool, { name: "unknown" });
 });
 
+test("adapter-dsh: 三种失败标记分别判失败，无标记不误判", () => {
+  const message = { source: { kind: "tool", callId: "call_1" }, content: [{}] };
+
+  // 1) 宿主把失败标在 message.isError，content 块里没有 isError
+  const messageOnly = mapAll([
+    host("turn/start", { turn: 2 }, 0),
+    host("tool/result", { turn: 2, step: 1, message: Object.assign({ isError: true }, message) }, 90),
+  ]);
+  const failed = named(messageOnly.out, "tool.completed")[0];
+  assert.equal(failed.result.status, "failed");
+  assert.deepEqual(failed.error, { kind: "tool_error" });
+
+  // 2) 同上再带 data.error.name → 落到具体 error.kind
+  const withDetail = mapAll([
+    host("turn/start", { turn: 2 }, 0),
+    host("tool/result", {
+      turn: 2, step: 1, message: Object.assign({ isError: true }, message), error: { name: "ToolNotFoundError" },
+    }, 90),
+  ]);
+  const detailed = named(withDetail.out, "tool.completed")[0];
+  assert.equal(detailed.result.status, "failed");
+  assert.deepEqual(detailed.error, { kind: "tool_not_found" });
+
+  // 3) 无任何错误标记 → success，且结果里不补 error 字段（防过度判失败）
+  const clean = mapAll([
+    host("turn/start", { turn: 2 }, 0),
+    host("tool/result", { turn: 2, step: 1, message }, 90),
+  ]);
+  const ok = named(clean.out, "tool.completed")[0];
+  assert.equal(ok.result.status, "success");
+  assert.equal("error" in ok, false);
+});
+
 test("adapter-dsh: llm/retry 映射为「失败 attempt + 新 attempt」，重试口径正确", () => {
   const { out } = mapAll([
     host("turn/start", { turn: 3 }, 0),

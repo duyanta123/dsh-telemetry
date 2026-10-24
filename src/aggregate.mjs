@@ -580,11 +580,11 @@ export function aggregateGrouped(events, { groupBy, ...opts } = {}) {
   const rows = [];
   for (const [key, groupEvents] of groups) {
     const summary = aggregateEvents(groupEvents, opts);
-    // Tool-only groups contain no request spans, so request-based metrics are
-    // meaningless here. Completed events stay usable even when their started
-    // event lies outside the selected time window.
-    const completed = groupBy === "tool"
-      ? groupEvents.filter((event) => event.event === "tool.completed") : [];
+    // A tool call is not a request: `requests` stays 0 and request-based metrics
+    // are meaningless for tool groups. `calls` carries the group's tool.completed
+    // count (for tool groups: success+failed+cancelled), so completed events stay
+    // usable even when their started event lies outside the selected time window.
+    const completed = groupEvents.filter((event) => event.event === "tool.completed");
     const metrics = groupBy === "tool" ? {
       total: 0, // Preserve the requests column: tool calls are not requests.
       success: completed.filter((event) => endStatus(event) === "success").length,
@@ -596,6 +596,7 @@ export function aggregateGrouped(events, { groupBy, ...opts } = {}) {
       group: key,
       events: summary.data_completeness.events,
       requests: metrics.total,
+      calls: completed.length,
       success: metrics.success,
       failed: metrics.failed,
       cancelled: metrics.cancelled,

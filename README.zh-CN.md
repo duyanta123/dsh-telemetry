@@ -172,7 +172,7 @@ node bin/telemetry.mjs --ui --port 47610
 | `--model <name>` | - | 按模型过滤 |
 | `--plugin <name>` | - | 按插件过滤 |
 | `--event <name\|prefix.*>` | - | 按事件过滤（如 model.*） |
-| `--group-by <key>` | - | 分组：model\|plugin\|tool\|profile\|day |
+| `--group-by <key>` | - | 分组：model\|plugin\|tool\|profile\|day。`tool` 分组用 `calls`（组内 tool.completed 数）代替 `requests`——工具调用不是请求，`requests` 恒为 0 |
 | `--format text\|json\|markdown` | text | 输出格式（`--export` 未指定时按扩展名 `.json`/`.md` 推断） |
 | `--errors-only` | - | 只看错误与取消 |
 | `--slow-over-ms <N>` | - | 只看耗时 ≥ N 的请求 |
